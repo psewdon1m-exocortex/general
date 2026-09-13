@@ -47,6 +47,13 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
       order, recomputes ordinals and has a keyboard equivalent.
 - [ ] Every dashboard includes CPU, RAM, Disk and Uptime in that logical order;
       unknown or stale telemetry is not rendered as zero.
+- [ ] Dashboard Disk Usage is sampled from the filesystem containing the
+      service's authoritative data and uses POSIX `f_bavail`, not `f_bfree`, to
+      derive service-available bytes and displayed occupancy. Reserved blocks
+      unavailable to the service count as occupied/unavailable.
+- [ ] Dashboard Uptime is derived from the monotonic lifetime of the current
+      operator-facing service/API process, resets when that instance restarts
+      and is proven not to expose host, proxy, database or Updater uptime.
 - [ ] Every service Settings view includes Appearance, Security, Backup, Updates
       and Logs, uses immediate committed-control persistence except accent, and
       has no page-level Save button.
@@ -54,6 +61,10 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
       use the specified custom overlays; the native file picker remains native.
 - [ ] Context menus use the approved inverted palette, viewport clamping and
       complete pointer/keyboard dismissal and activation behavior.
+- [ ] Every editable search field shows an accessible cross/clear control at
+      its padded inline end for a non-empty query; activation clears the full
+      query, refreshes results, retains input focus and causes no overlap,
+      resize or duplicate native cancel icon.
 - [ ] Overlays center on every open, remain within the viewport, trap and restore
       focus and do not discard credential or restore state accidentally.
 - [ ] Mutations show pending and final notices.

@@ -761,8 +761,34 @@ Every service dashboard MUST begin with these four operator-health cards:
 | --- | --- | --- |
 | CPU Usage | Current percentage and logical core count | Accent progress line when percentage is known |
 | RAM Usage | Current percentage and used/total capacity with unit | Accent progress line |
-| Disk Usage | Current percentage and used/total capacity for the relevant service volume | Accent progress line |
-| Uptime | Explicit active duration for the running service instance | Text; no meaningless progress line |
+| Disk Usage | Current percentage and service-usable occupied/total capacity for the relevant service volume, calculated from `bavail` | Accent progress line |
+| Uptime | Explicit active duration of the current service instance, never host uptime | Text; no meaningless progress line |
+
+Disk telemetry MUST query the filesystem that contains the service's
+authoritative persistent data, not an unrelated container overlay or host root
+filesystem. For a POSIX `statvfs` result, calculate the displayed values from
+blocks available to the unprivileged service identity:
+
+```text
+total_bytes = f_blocks * f_frsize
+available_bytes = f_bavail * f_frsize
+used_bytes = total_bytes - available_bytes
+usage_percent = used_bytes / total_bytes * 100
+```
+
+`f_bfree` MUST NOT replace `f_bavail`: blocks reserved for a privileged user are
+not writable by the service and therefore count as unavailable in its
+Dashboard. Guard a zero or invalid `f_blocks`, clamp only the rendered
+percentage to `0-100%`, preserve the raw diagnostic internally and render an
+explicit unavailable/stale state instead of a fabricated value.
+
+Uptime is measured with a monotonic clock from the start of the currently
+running application/service process. It resets when that service process,
+container or deployed instance restarts, even if the host did not reboot. Host
+boot age, `/proc/uptime`, reverse-proxy uptime, database uptime and Updater
+uptime MUST NOT be substituted. In a multi-process service, the Dashboard uses
+the uptime reported by the active operator-facing service/API instance and
+labels any separately shown worker uptime explicitly.
 
 At the reference desktop width, CPU and RAM form the first two `2x` cards; Disk
 and Uptime form the next two `2x` cards. Additional service-specific cards may
@@ -1036,6 +1062,25 @@ events or success notices.
 An empty query restores the current list. No-match state remains muted and
 does not hide the create action.
 
+Every editable search field MUST contain a dedicated clear-query control at
+its inline end, inside the field border. The control is shown only while the
+query is non-empty; the empty state removes it from the tab order. Use the
+shared close/cross icon rather than a text letter, center the visible glyph in
+a platform-minimum hit target and keep the same interior end inset as the
+field's other horizontal padding. The input permanently reserves enough
+inline-end padding for that hit target, so text, selection and the clear
+control never overlap and the field does not reflow when the control appears.
+Use logical inline positioning so right-to-left layouts place it correctly.
+
+Pointer or keyboard activation clears the complete query, emits the same
+filter update as ordinary input, restores the unfiltered current scope and
+keeps focus in the search field. `Escape` MAY perform the same clear action
+when the query is non-empty. The control has a localized accessible name such
+as `Clear search`, exposes disabled/read-only state correctly and receives the
+normal accent hover/focus treatment without resizing the field. Normalize or
+hide a browser's native search-cancel decoration when it would duplicate the
+application control.
+
 The search field belongs to the collection command bar defined in section 6.
 It MUST NOT scroll away while the collection below it continues scrolling.
 
@@ -1045,6 +1090,12 @@ Documentation is a normal application view, not a modal. On desktop it uses a
 left navigation column of about `220px` and a flexible article column. The
 navigation is sticky and begins with immediate search over headings and body
 text.
+
+The canonical desktop composition is shown in
+[documentation_example](./src/documentation_example.png) and specified in
+section 10.7. Product identity, article copy and the raster's missing accent
+states are placeholders; the shared shell, palette and interaction rules in
+this document still apply.
 
 The article column uses `24px 32px 64px` padding, restrained heading sizes,
 bordered code blocks, collapsed-border tables and accent-left notes. At about
@@ -2084,7 +2135,12 @@ remain normative even when they are not repeated in every entry.
 - CPU, RAM and Disk use a bottom progress line with accent completed portion and
   structural remaining portion. Clamp display to `0-100%` while preserving an
   explicit over-limit diagnostic if the source can exceed its contract.
-- Uptime has no progress line because it has no meaningful fixed maximum.
+- Disk percentage and used capacity use `f_bavail` for the relevant service
+  data filesystem exactly as specified in section 5.3; they do not use
+  `f_bfree` or an unrelated container/host filesystem.
+- Uptime has no progress line because it has no meaningful fixed maximum. It is
+  the current service-instance uptime and resets on a service/container restart;
+  it is never the host's boot uptime.
 - Refreshes update text and progress without resizing cards. Stale or failed
   telemetry is named and timestamped; it is not displayed as a healthy zero.
 
@@ -2205,3 +2261,83 @@ labels or controls in these raster exports.
 - Pointer hover, keyboard focus and current selection use accent without
   changing the inverted white surface. Destructive meaning must still be named;
   accent hover does not convert a destructive command into a safe action.
+
+### 10.7 Documentation View Template
+
+#### [documentation_example](./src/documentation_example.png)
+
+- Source canvas: `1919x1033px`. The approximately `8px` dark-gray outer matte,
+  rounded crop and shadow belong to the screenshot presentation, not the
+  application. Production renders the shared shell directly against its real
+  viewport and does not add a rounded desktop frame.
+- Geometry is measured from the inner application's top-left corner at source
+  coordinate `8,8`. In that coordinate system the sidebar is the canonical
+  `250px` border-box, its `1px` right border appears at source `x=257`, and the
+  `123px` page-header divider appears at source `y=130`. This image therefore
+  does not amend the shell dimensions in sections 2 and 4.
+- Identity is illustrative: the atom icon, `KERNEL` label, article names,
+  breadcrumb and article copy MUST be replaced with the actual service icon,
+  name and versioned internal documentation. They do not create reusable
+  product names or content requirements.
+- Page title: `Documentation`, Space Grotesk Bold at the standard `80px` desktop
+  size and the shared page-title position. Production uses the configured
+  accent for the title. The white title in this raster is a non-normative source
+  state, not a new palette exception.
+- Current sidebar destination: Documentation remains in the unnumbered bottom
+  group. It uses accent text to communicate the current page, without a frame,
+  arrow, scale effect or drag behavior. The white current label in the raster
+  is likewise non-normative. Logout remains white until its own hover/focus
+  state.
+- Desktop content begins at application-local `left: 280px; top: 151px`, or
+  source `left: 288px; top: 159px`. It forms a two-column grid: a `220px`
+  documentation navigation column, a `30px` gap and an article surface with a
+  `1120px` maximum width. Extra viewport width stays after the article instead
+  of stretching prose into an unreadable line length.
+- Search is `220x40px` in the reference, with black fill, a `1px` nested
+  `#CCCCCC` outline and `12px` horizontal inset. Its Consolas label is a prompt,
+  not a substitute for an accessible name. Input, clear and no-result states
+  preserve the same box dimensions. Because the illustrated query is empty,
+  its clear control is correctly absent; a non-empty query shows the mandatory
+  cross at the field's right/inline end with the reserved inset from section
+  5.6.
+- Documentation navigation has no additional outer card. Group headings use
+  muted/80%-white Consolas Bold; article labels use Consolas Regular. Article
+  rows are approximately `36px` high and use `1px #CCCCCC` separators across
+  the `220px` column. These are navigation separators, not prohibited data-table
+  row dividers. Active, hover and keyboard-focus states use the configured
+  accent without changing row height or column width.
+- Navigation order follows the document information architecture, not the
+  primary sidebar's numeric ordering. Groups such as getting started,
+  operation and maintenance are examples; each service supplies only groups
+  with real, searchable articles. Empty groups are omitted.
+- The article surface begins at source `left: 538px; top: 159px`, has a
+  `1120px` reference width, black fill and a `1px` top-level white outline. Its
+  content inset is `32px` horizontally, `24px` at the top and at least `64px` at
+  the bottom. The article grows vertically with content; clipping at the bottom
+  of the PNG is a viewport crop, not a fixed article height.
+- Article typography uses Consolas: breadcrumb and body `14px/22px`, article
+  title Bold `36px/44px`, and level-two headings Bold `24px/30px`. Long prose
+  wraps within the article column. Heading hierarchy remains semantic and must
+  not be simulated only with font size.
+- The breadcrumb identifies the service/document set and current article. It is
+  keyboard navigable where an ancestor is actionable, uses text separators
+  rather than decorative images and never exposes filesystem paths or private
+  repository coordinates.
+- Article section dividers use the nested `#CCCCCC` line. The reference note is
+  a rectangular `#111111` surface with a `2px` white left rule and approximately
+  `16px` padding; semantic success, warning or failure notes additionally use
+  the prescribed green, accent or red meaning in text/icon treatment and never
+  rely on color alone.
+- Code blocks, tables, lists and links follow section 5.7. Copy actions provide
+  explicit success/failure feedback and retain a manual-selection fallback for
+  embedded browsers where programmatic clipboard access is unavailable.
+- At widths near `1000px` the documentation navigation stacks before the
+  article and both use the available main width. At `720px` and below the global
+  sidebar becomes its standard modal overlay; documentation navigation remains
+  in normal document order, search stays reachable and no horizontal page
+  scrolling is introduced.
+- When the global sidebar is hidden at desktop width, the whole documentation
+  grid moves left and may use the released width, while the `220px` navigation,
+  `30px` inter-column gap and `1120px` readable article maximum remain stable.
+  Verify open and hidden states at `1919x1034` and `1920x1080` as required by
+  section 9.

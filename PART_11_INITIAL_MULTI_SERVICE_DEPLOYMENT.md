@@ -42,7 +42,7 @@ Register revision remains restorable. The broader seed is preserved separately.
 
 ## Releases and host preparation
 
-The current coordinated-deployment baseline requires Updater `0.4.2` or newer.
+The current coordinated-deployment baseline requires Updater `0.4.3` or newer.
 Every consuming repository MUST pin the exact tested Updater version in
 `.release/updater.version`; release that exact `updater-vMAJOR.MINOR.PATCH`
 artifact before publishing a consuming service bundle. A project pin may move
