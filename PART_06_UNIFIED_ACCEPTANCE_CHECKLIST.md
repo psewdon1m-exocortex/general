@@ -182,6 +182,17 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
       publication.
 - [ ] Default-branch and pull-request pipelines give feedback without publication.
 - [ ] Tests, builds and smoke checks finish before publication.
+- [ ] The exact candidate passes the Part 12 known-problem gate: catalog
+      structure and ID uniqueness are valid, every active problem ID appears
+      exactly once as evidence-backed `PASS` or reasoned `N/A`, and
+      `known-problems-report.json` matches the full service revision, qualified
+      tag, immutable central-documentation revision and catalog SHA-256.
+- [ ] Missing/stale known-problem evidence, `FAIL`, `UNKNOWN`, an omitted or
+      duplicate ID and an unsupported `N/A` block the next privileged stage:
+      pre-signing failures prevent access to signing secrets, and final
+      signature/trust/provenance failures prevent publication. Production-only
+      checks remain visibly blocked in deployment readiness rather than
+      receiving a fabricated pass.
 - [ ] Cross-repository dependencies are version- and checksum-pinned.
 - [ ] The manifest binds role, version, artifact digest and compatibility.
 - [ ] The updater independently resolves artifacts and cannot receive arbitrary
@@ -303,6 +314,10 @@ no-impact diff.
 - [ ] The project's reproducible pre-push command succeeds. CI repeats the
       machine-verifiable subset and blocks merge, release and publication on
       failure; bypassing a local hook does not waive this gate.
+- [ ] Before a service-qualified release, CI completes the full
+      [Part 12 known-problem evaluation](./PART_12_KNOWN_DEPLOYMENT_AND_OPERATIONS_PROBLEMS.md),
+      retains its revision-bound JSON report and prevents release finalization
+      when the report is incomplete or unsuccessful.
 
 Use this minimal record with the change or handoff:
 

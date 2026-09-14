@@ -143,6 +143,12 @@ accepted installation is not a successful terminal outcome.
 
 ## Deployment acceptance
 
+Before publishing each service-qualified release, require the full
+[Part 12 known-problem gate](./PART_12_KNOWN_DEPLOYMENT_AND_OPERATIONS_PROBLEMS.md)
+and retain a `known-problems-report.json` bound to that service, exact service
+revision, tag, immutable central-documentation revision and catalog digest. A
+shared report cannot stand in for per-service scope.
+
 Require checks for all seven documentation areas on each repository, plus the
 connected real-service stand: authenticated Kernel→Volt, Linux recovery ZIP,
 independent Volt mirror and Windows one-way folder synchronization, interruption

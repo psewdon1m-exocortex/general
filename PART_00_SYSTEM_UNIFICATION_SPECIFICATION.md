@@ -104,6 +104,7 @@ Operator decision requested:
 | [Part 09. Service Agents: Deployment, Initialization And Lifecycle](./PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md) | Concrete Updater, Neptune and Gryphon topology, installation, enrollment, control, update and recovery contracts | A module deploys, initializes or operates a shared host agent |
 | [Part 10. Service Agents: UI And Operator Workflows](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md) | Concrete backup, messaging connection, updates and synchronization panels, states, controls and linked visual templates | A module exposes shared-agent status or actions |
 | [Part 11. Initial Multi-Service Deployment Profile](./PART_11_INITIAL_MULTI_SERVICE_DEPLOYMENT.md) | Concrete coordinated deployment, trust, recovery and acceptance profile for the initial service set | Deploying or validating that explicitly named service topology |
+| [Part 12. Known Deployment And Operations Problems](./PART_12_KNOWN_DEPLOYMENT_AND_OPERATIONS_PROBLEMS.md) | Stable cross-service problem IDs, recurring deployment/operations failure classes, durable remediation and the mandatory known-problem release gate | Every service-qualified release and every incident/regression that reveals a reusable failure class |
 
 ## 3. Source-Of-Truth Rules
 
@@ -135,6 +136,10 @@ Operator decision requested:
   handling, approval and final handoff.
 - Part 06 integrates the other unification parts but does not replace their
   detailed acceptance criteria.
+- Part 12 is a derived problem and regression registry. Its stable IDs and
+  release-evidence gate are normative, while Parts 01–11 remain authoritative
+  for the underlying engineering requirement. A catalog entry cannot waive or
+  weaken the Part from which it is derived.
 - Part 07 is the common security baseline. A more permissive SEO/GEO discovery
   rule applies only to routes deliberately classified as public; it never
   weakens authentication, private-network or secret-handling requirements.

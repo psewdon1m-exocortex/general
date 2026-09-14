@@ -86,16 +86,22 @@ evidence contract.
 8. Build the final OCI image or package and resolve its immutable digest.
 9. Build checksummed installation bundles and the complete narrow release
    manifest.
-10. In a protected release-only job, load this service's private signing key
+10. Run the Part 12 pre-signing phase for catalog integrity, applicability and
+    every check that does not depend on final signatures. Any unresolved result
+    stops before release secrets are exposed.
+11. In a protected release-only job, load this service's private signing key
     from GitHub Secrets, sign the canonical manifest and derive its public key.
-11. Generate this service's standalone `bootstrap.sh` with the public key
+12. Generate this service's standalone `bootstrap.sh` with the public key
     embedded; verify that no private-key bytes enter the bootstrap, bundle,
     image, cache, log or artifact set.
-12. Verify the detached manifest signature and every artifact digest using the
+13. Verify the detached manifest signature and every artifact digest using the
     generated bootstrap/public-key outputs.
-13. Generate provenance attestations; request an SBOM and provenance for OCI
+14. Generate provenance attestations; request an SBOM and provenance for OCI
     builds.
-14. Publish all artifacts under the original immutable version tag.
+15. Complete the final [Part 12 known-problem release phase](./PART_12_KNOWN_DEPLOYMENT_AND_OPERATIONS_PROBLEMS.md#обязательный-проверочный-gate-перед-релизом)
+    for signature/trust/provenance-dependent checks and retain
+    `known-problems-report.json`.
+16. Publish all artifacts under the original immutable version tag.
 
 Any failed step prevents publication.
 
@@ -170,9 +176,48 @@ rollback failure path. A `PASS` records exact commands, source/candidate
 versions and results. `N/A` names the inspected paths and explains why the diff
 cannot affect discovery, packaging, installation, health or rollback.
 
+### 25.5 Known-Problem Regression Gate
+
+Every service-qualified release MUST evaluate every active ID in
+[Part 12](./PART_12_KNOWN_DEPLOYMENT_AND_OPERATIONS_PROBLEMS.md) against the
+exact tagged revision and candidate artifact set. This gate runs after the
+profile-specific build, tests and smoke checks have produced evidence, and
+before the protected publication job may finalize the release.
+
+The gate has a pre-signing phase and a final signed-artifact phase. The first
+validates the catalog, classification and every check that does not need the
+release signature; a failure prevents access to signing secrets. Only checks
+whose evidence inherently depends on the final signature, derived public key,
+bootstrap or provenance continue in the protected job, and they must pass
+before publication.
+
+The pipeline requires exactly one `PASS` or reasoned `N/A` for every active ID
+and emits `known-problems-report.json` with
+the service, full service revision, qualified tag, immutable central-documentation
+revision and SHA-256 of the exact catalog bytes. A missing/stale report,
+duplicate or omitted ID, `FAIL`, `UNKNOWN`, or
+unsupported `N/A` blocks the next privileged stage. Evidence references
+immutable job outputs, reports or exact commands; prose asserting that a
+problem is fixed is not evidence.
+
+Default-branch and plain validation-tag CI run catalog lint plus every
+machine-verifiable affected check without release permissions. The qualified
+tag reuses those results only when they belong to the identical revision and
+then completes the full release-scope evaluation. Checks needing real
+production inputs remain in deployment readiness; the release may prove the
+template, fail-closed validation and operator runbook but MUST NOT report the
+external production result as passed.
+
 ## 26. Release Artifact Contract
 
 A server release manifest is an installation contract, not release notes.
+
+`known-problems-report.json` is required companion release evidence. It is
+bound to the exact service revision, service-qualified tag, immutable central
+documentation revision and Part 12 catalog digest, published with the release
+evidence/provenance set and retained for at least the supported lifetime of
+that version. It is not a bootstrap trust input and never contains secrets or
+private production coordinates.
 
 | Generic field | Purpose |
 | --- | --- |
