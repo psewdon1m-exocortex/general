@@ -30,6 +30,13 @@ portable vault and logical records. Clean restore uses the archive's Access Key
 and rewraps record keys for the target vault. The independent mirror is still
 `/volt/personal.volt`; ZIP archives are under `/backups/volt` in Saturn storage.
 
+Across every operator-facing service in this profile, an Access Key is an
+explicitly supplied opaque exact value. No service may require a minimum or
+maximum length, particular symbols or character classes, URL-safe/ASCII text,
+an entropy score or a password/example denylist, and no path may trim or
+normalize it. Missing configuration is invalid; the value itself has no
+service-defined shape policy.
+
 ## First Register
 
 `kernel/data/defaults/register.json` contains exactly 28 initial-profile keys,

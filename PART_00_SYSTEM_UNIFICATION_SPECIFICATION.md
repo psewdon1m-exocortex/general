@@ -148,6 +148,14 @@ Operator decision requested:
   verification, application sessions and route authorization protect all
   operator data. `OPERATOR_CIDR` and equivalent source-IP admission settings
   are not part of the architecture.
+- An Access Key is a required, operator-supplied opaque exact value. "Required"
+  means that the operator must explicitly supply a value; it is not a password
+  policy. A service MUST NOT impose an Access-Key-specific minimum or maximum
+  length, strength or entropy score, required or forbidden character class,
+  URL-safe/ASCII-only rule, dictionary/breach/example/placeholder denylist,
+  trimming, Unicode normalization or case folding. Bootstrap, sign-in, rotation,
+  backup/restore and offline-unlock paths MUST preserve and compare the same
+  value exactly. A missing value remains an invalid unconfigured state.
 - Public HTTP(S), WebSocket routing and TLS belong to one server-managed Nginx.
   A service MUST NOT bundle or operate its own Nginx. coturn is not a baseline
   component; a genuine WebRTC NAT-traversal requirement needs a project-specific

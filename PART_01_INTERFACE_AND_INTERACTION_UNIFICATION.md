@@ -533,6 +533,14 @@ The Access Key control:
 - is empty on every fresh render and reset;
 - uses a masked secret input with an accessible `Access Key` label even if the
   compact visual presentation uses a placeholder;
+- accepts the explicitly supplied value as opaque exact text: there is no
+  minimum or maximum length, strength/entropy score, required or forbidden
+  character class, URL-safe/ASCII-only restriction or denylist;
+- has no password-strength meter and shows no composition hint such as a
+  character count or a requirement for letters, digits or symbols;
+- never trims, normalizes, changes case, truncates or otherwise rewrites the
+  submitted value; an absent value is an unconfigured/empty field, not a weak
+  value;
 - uses `autocomplete="current-password"` so standards-based password managers
   can offer the saved Access Key without requiring a fabricated username field;
 - is never initialized from markup, server-rendered state, query parameters,
@@ -956,8 +964,11 @@ only a valid value. Black, white, hover, success and danger are not editable.
 
 The Access Key is changed only in a custom overlay containing the current key,
 the new key and confirmation of the new key. All fields begin empty. The action
-checks the current key, validates and compares the new entries, rotates the
-server-side verifier atomically and revokes every other active browser session.
+checks the current key, requires two exactly matching explicitly supplied new
+entries, rotates the server-side verifier atomically and revokes every other
+active browser session. It performs no length, composition, character-set,
+strength, entropy, breached-password, example-value or placeholder-value check
+and does not trim or normalize either entry.
 The current field uses `autocomplete="current-password"`; both new-key fields
 use `autocomplete="new-password"`. The UI never reveals either stored verifier
 or current key.

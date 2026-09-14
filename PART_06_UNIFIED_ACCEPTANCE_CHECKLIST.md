@@ -32,6 +32,16 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
 - [ ] Login contains one empty Access Key field and no login/username field;
       reachability is independent, textual and uses green two-second fade or
       static red failure as specified.
+- [ ] Every Access Key path treats an explicitly supplied key as opaque exact
+      text: no service-specific minimum/maximum length, composition, character
+      set, URL-safe/ASCII, entropy/strength or breached/example/placeholder
+      policy, and no trimming, normalization, case folding or truncation. Only
+      an absent/unconfigured value is rejected.
+- [ ] Automated parity tests cover at least a one-character key, a key with
+      leading/trailing spaces, and a key containing whitespace, Unicode and
+      non-URL-safe punctuation across bootstrap/import, login, rotation,
+      backup/restore and offline unlock wherever those paths apply. The exact
+      same value succeeds; a different value and missing configuration fail.
 - [ ] Every secret, token and verification input is empty on first open/reset;
       no default, example or previously submitted credential is present in
       markup, initialization, URL, browser persistence or a read API.
@@ -230,9 +240,11 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
       command adapters.
 - [ ] Bot registration, service-function linking and Telegram-user binding are
       tested as separate scopes; unlink/revoke affects only the selected scope.
-- [ ] Access Key change requires current proof, matching replacement entries and
-      revokes other sessions; control-plane token rotation is write-only, validated
-      before atomic activation and never exposed in UI, logs or backup.
+- [ ] Access Key change requires current proof, two exactly matching explicitly
+      supplied replacement entries and revokes other sessions; it applies no
+      password-strength or value-shape policy. Control-plane token rotation is
+      write-only, validated before atomic activation and never exposed in UI,
+      logs or backup.
 - [ ] Every listener and route has an explicit public, non-indexable, private or
       concealed exposure mode.
 - [ ] Browser operator login uses `public authenticated`: it is reachable from

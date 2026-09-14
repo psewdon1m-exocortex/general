@@ -316,11 +316,19 @@ An Access Key change MUST:
 1. require an authenticated session, CSRF protection and recent proof of the
    current Access Key;
 2. receive the new key twice and compare it without logging either value;
-3. enforce the current strength and breached/known-example policy;
+3. require an explicitly supplied value but apply no minimum/maximum length,
+   strength/entropy, character-set, URL-safe/ASCII, breached/dictionary,
+   example/placeholder or other password-style policy;
 4. create a new salted verifier with the approved password-hashing KDF;
 5. replace the verifier atomically;
 6. revoke every other active browser session and rotate affected session state;
 7. write an audit event containing actor, time and outcome but no key material.
+
+Every Access Key boundary MUST preserve the operator's exact value without
+trimming, normalization, case folding or silent truncation. This absence of a
+credential-composition policy does not relax constant-time verification,
+rate limiting, secure transport, verifier protection, session expiry, CSRF or
+reauthentication requirements.
 
 A control-plane token change MUST:
 

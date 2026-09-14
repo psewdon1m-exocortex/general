@@ -144,7 +144,7 @@ service:
 
 | Group | Written by | Examples of content |
 | --- | --- | --- |
-| Operator input | Human | Public URL, one strong Access Key, certificate name, selected port, initial control-plane URL when required |
+| Operator input | Human | Public URL, one operator-chosen Access Key, certificate name, selected port, initial control-plane URL when required |
 | Generated secrets | Prepare script | Session secret, database password, local update-control token and initial dependency credential reference when applicable |
 | Release lock | Verified manifest | Semantic version and immutable image digest |
 | Runtime defaults | Bundle | Listen address, timeouts and non-secret feature defaults |
@@ -161,6 +161,14 @@ into authenticated server-side settings, which become the authoritative value.
 The runtime MUST define and expose this transition so `.env` and Settings cannot
 silently compete as two sources of truth.
 
+The Access Key is required only in the sense that the operator must explicitly
+supply a value. Bootstrap and runtime MUST otherwise treat it as opaque exact
+text. They MUST NOT impose an Access-Key-specific minimum or maximum length,
+strength/entropy threshold, character-class or URL-safe/ASCII restriction,
+breached/dictionary/example/placeholder denylist, trimming, normalization or
+case folding. Templates SHOULD leave the field empty instead of inserting a
+sentinel that could collide with a deliberately chosen literal value.
+
 A control-plane access token is never stored as an ordinary readable setting. Initial
 deployment injects it through the approved secret boundary or imports a secret
 reference. Later rotation from authenticated Settings writes through a narrow
@@ -169,8 +177,9 @@ rewrite arbitrary environment, deployment or release files.
 
 Before start, validation MUST reject:
 
-- unchanged placeholders or known example credentials;
-- a weak Access Key according to the service policy;
+- unresolved structural placeholders or known example machine credentials in
+  fields other than the Access Key;
+- a missing Access Key, without applying any policy to a supplied value;
 - a public endpoint that is not valid HTTPS;
 - malformed or missing integration credentials;
 - an out-of-range port or conflict with a protected host service;
