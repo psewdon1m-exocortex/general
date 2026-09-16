@@ -1097,21 +1097,228 @@ It MUST NOT scroll away while the collection below it continues scrolling.
 
 ### 5.7 Documentation View
 
-Documentation is a normal application view, not a modal. On desktop it uses a
-left navigation column of about `220px` and a flexible article column. The
-navigation is sticky and begins with immediate search over headings and body
-text.
+Documentation is a normal application view, not a modal. It is a bounded
+workspace below the shared page header, not an unbounded document that delegates
+scrolling to `body`, the shell or the browser viewport. On desktop it uses a
+`220px` documentation-navigation column, a `30px` inter-column gap and a
+flexible article column capped at `1120px`.
 
 The canonical desktop composition is shown in
-[documentation_example](./src/documentation_example.png) and specified in
+[documentation](./src/documentation.png) and specified in
 section 10.7. Product identity, article copy and the raster's missing accent
 states are placeholders; the shared shell, palette and interaction rules in
 this document still apply.
 
-The article column uses `24px 32px 64px` padding, restrained heading sizes,
-bordered code blocks, collapsed-border tables and accent-left notes. At about
-`1000px`, documentation navigation stacks above content and article padding
-reduces to `20px`.
+#### 5.7.1 Viewport Ownership And Workspace Height
+
+The Documentation workspace owns all scrolling inside the view. While this
+view is active, the page-level surface MUST fit the available block size and
+MUST NOT grow the browser document merely because the operator guide is long.
+Use the actual shell dimensions rather than a hard-coded screen height:
+
+```css
+.documentation-page {
+  height: calc(
+    100dvh
+    - var(--page-header-height)
+    - var(--page-content-padding-block-start)
+    - var(--page-content-padding-block-end)
+  );
+  min-height: 0;
+  overflow: hidden;
+}
+```
+
+Declare a `100vh` fallback immediately before the `100dvh` value for browsers
+without dynamic-viewport-unit support. In the canonical desktop shell,
+`--page-header-height` is `123px`, page-content top padding is `28px` and bottom
+padding is `40px`, producing `calc(100dvh - 191px)`. At the canonical narrow
+shell, the header is `96px` and page-content padding is `20px` on both block
+edges, producing `calc(100dvh - 136px)`. If a product legitimately changes a
+shell token, it MUST derive the Documentation height from that token; it MUST
+NOT preserve `191px` or `136px` as unrelated magic numbers.
+
+Every grid/flex ancestor between the sized workspace and its scroll regions
+uses `min-height: 0`; inline tracks use `min-width: 0`. Missing either rule may
+make an overflow child enlarge the grid instead of scrolling. The outer
+Documentation grid uses `overflow: hidden` and never becomes a third scroll
+owner.
+
+#### 5.7.2 Exactly Two Independent Scroll Regions
+
+The workspace contains exactly two vertical scroll regions:
+
+1. **Documentation navigation region.** It contains the search field, group
+   headings and section destinations.
+2. **Documentation article region.** It contains the guide header, all visible
+   sections, notes, lists, code blocks and tables.
+
+Both regions use `overflow-y: auto`, `min-height: 0`,
+`overscroll-behavior: contain` and hidden visual scrollbars. They scroll
+independently:
+
+- wheel, trackpad, touch or keyboard input over/focused in the navigation moves
+  only the navigation region;
+- the same input over/focused in the article moves only the article region;
+- scrolling the article never moves the search field, group headings or
+  section destinations;
+- reaching the beginning or end of either region does not chain the gesture to
+  `body`, the page surface or the other region;
+- changing primary application destinations still uses normal shell
+  navigation and is not trapped by the Documentation workspace.
+
+The scrollbars are visually suppressed in both engine families without
+disabling scrolling:
+
+```css
+.documentation-nav,
+.documentation-content {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.documentation-nav::-webkit-scrollbar,
+.documentation-content::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+```
+
+Do not use `overflow: hidden` on either inner region, cancel wheel/touch events,
+remove the content from the accessibility tree or create a transparent overlay
+to conceal a native scrollbar. A hidden visual scrollbar is acceptable here
+only because wheel, trackpad, touch, Page Up/Down, Home/End and arrow-key
+scrolling remain available. Each region has an accessible name; the article
+region is programmatically focusable when its contents do not otherwise
+provide a reliable keyboard entry point.
+
+#### 5.7.3 Documentation Navigation And Search
+
+The left region is `220px` wide on desktop and has no outer card. Its inner
+stack uses `20px` vertical gaps and at least `30px` bottom padding so the final
+destination can scroll clear of the region edge. Search is the first item and
+uses the canonical `220x40px` control. It filters immediately without submit or
+network navigation.
+
+Search normalization trims the query and compares case-insensitively against,
+at minimum, each section's visible title, concise summary, indexed keywords and
+rendered body text. Search metadata augments real copy; it MUST NOT be the only
+place an important operator term exists. The clear behavior follows section
+5.6. Empty groups are omitted. A no-result query leaves the search field
+available, renders an explicit no-results message in the article region and
+does not collapse the workspace.
+
+Group headings use muted/80%-white Consolas Bold. A heading has `8px` block
+margin in the reference stack. Section destinations are full-column controls,
+approximately `36px` high, with `7px` block padding, left-aligned text and a
+`1px` nested separator on the block end. They do not scale, change width or
+change height on hover/focus. Hover, keyboard focus and the current-section
+state use the configured accent.
+
+The navigation region itself is not `position: sticky`: independence is
+created by the two bounded overflow owners. Making the entire column sticky
+inside a page-scrolling document is not an equivalent implementation, because
+the browser page still moves and scroll ownership becomes viewport-dependent.
+The search and groups remain stationary while the operator scrolls the article
+because only the right region's `scrollTop` changes.
+
+#### 5.7.4 Article Region And Long-Form Structure
+
+The article region is a black top-level surface with a `1px` white outline,
+`1120px` maximum width and `24px 32px 64px` padding. It stretches to the full
+workspace height and scrolls internally. The guide content inside it may be any
+length; the scroll surface does not grow the outer page.
+
+The guide header uses `30px` bottom padding and a `1px` nested divider. Its
+kicker identifies the current product, runtime/document version and operator
+guide without exposing filesystem paths, private repository coordinates or
+secret-bearing identifiers. The guide title is `36px/44px` Space Grotesk Bold,
+with `8px` vertical separation from the kicker in the reference layout. The
+introductory paragraph describes the guide scope rather than a marketing claim.
+
+All matching sections are rendered in one continuous semantic document. A
+section uses a stable unique fragment identifier, `30px` block padding,
+`30px` scroll margin and a `1px` nested divider. The last visible section omits
+the trailing divider. Section headings use `22px` accent text in the compact
+long-form template; nested headings are `16px` and begin after approximately
+`26px`. A concise section summary may precede its body and uses approximately
+`22px` bottom separation. Body text remains `14px/22px` or an equivalent
+`1.7` line height.
+
+Lists use a `24px` inline-start indentation and `8px` item gap. Inline code has
+a `1px` nested outline, `1px 4px` inset and hover-surface fill. Code blocks use
+a `1px` nested outline, `14px` padding and their own horizontal overflow only
+when the code cannot wrap. Tables collapse borders, use the full available
+article width and `8px` cell padding; at narrow widths the table, not the page,
+may become horizontally scrollable. Notes use a rectangular hover surface,
+`2px` accent left rule and `14px` padding. Semantic warning, success and failure
+meaning also uses text/icon treatment and never color alone.
+
+#### 5.7.5 Section Navigation, Filtering And Scroll State
+
+Activating a section destination scrolls the **article region only**. It MUST
+NOT call a behavior that also scrolls the browser document or the navigation
+region. Calculate the destination relative to the article scroll owner, or use
+fragment navigation proven to select the correct overflow ancestor. Preserve a
+`30px` top reading offset. Smooth scrolling is allowed only when reduced motion
+is not requested; reduced-motion mode jumps immediately.
+
+The destination remains keyboard operable and exposes the target relationship.
+After keyboard activation, focus either remains on the destination with the
+target announced through the current-section state, or moves to a focusable
+target heading without losing reading order. Browser history and fragment URL
+updates are optional, but back/forward behavior MUST be coherent if they are
+implemented.
+
+Manual and programmatic scrolling of the article region MUST continuously keep
+the table-of-contents current-section state synchronized with the section at
+the reading position. Exactly one visible section destination is current. The
+canonical activation line is `30px` below the article owner's block-start: the
+current section is the last visible topic whose block-start has reached or
+crossed that line. Before the first topic reaches it, the first visible topic is
+current; at the article's maximum scroll offset, the final visible topic is
+current. This state updates after wheel, trackpad, touch, keyboard and scripted
+scrolling, and after filtering, resize or scroll restoration. Synchronization
+changes only the destination's accent/current semantics (for example
+`aria-current="location"`); it MUST NOT move the navigation region or page,
+steal focus, or initiate another article scroll.
+
+Changing or clearing the search query resets the article region to
+`scrollTop = 0` before displaying the new result set. This prevents a retained
+deep scroll offset from producing an apparently blank filtered guide. The
+navigation region MAY preserve its own scroll position when still valid; it
+must clamp that value after groups disappear. Leaving and reopening the view
+resets both regions unless the product explicitly documents per-view scroll
+restoration.
+
+#### 5.7.6 Responsive Contract
+
+Above approximately `1000px`, the two regions are side by side. The grid is
+`width: 100%`, capped at `1610px` and centered in the page-content insets. Extra
+width remains after the readable article maximum rather than stretching prose.
+
+At approximately `1000px` and below, navigation stacks above the article, but
+the two-scroll-region contract remains. Use one column with a bounded
+navigation row and `minmax(0, 1fr)` article row; a canonical split is
+`minmax(160px, 34%) minmax(0, 1fr)`. The navigation region scrolls within the
+first row and the article region scrolls within the second. Do not revert to a
+single page scrollbar merely because the regions are stacked.
+
+At `720px` and below, use the narrow shell height calculation above, reduce
+article padding to `20px` horizontally and at least `48px` at the bottom, and
+use a navigation row no smaller than `150px` unless the viewport itself cannot
+provide that height. The global sidebar follows its standard modal-overlay
+contract. Neither Documentation region may introduce horizontal page scrolling.
+
+If the available block size is exceptionally short, preserve the search
+control, at least one visible destination row and a usable article viewport;
+allow each inner region to scroll rather than imposing a page minimum height.
+Viewport resize, zoom, mobile browser chrome and virtual-keyboard changes clamp
+both `scrollTop` values to their new valid ranges without leaving a blank zone.
+
+#### 5.7.7 Verification And Content Synchronization
 
 Services may change article content and domain examples, but not the shared
 layout, search behavior, typography hierarchy or responsive contract.
@@ -2275,80 +2482,173 @@ labels or controls in these raster exports.
 
 ### 10.7 Documentation View Template
 
-#### [documentation_example](./src/documentation_example.png)
+#### [documentation](./src/documentation.png)
 
-- Source canvas: `1919x1033px`. The approximately `8px` dark-gray outer matte,
-  rounded crop and shadow belong to the screenshot presentation, not the
-  application. Production renders the shared shell directly against its real
-  viewport and does not add a rounded desktop frame.
-- Geometry is measured from the inner application's top-left corner at source
-  coordinate `8,8`. In that coordinate system the sidebar is the canonical
-  `250px` border-box, its `1px` right border appears at source `x=257`, and the
-  `123px` page-header divider appears at source `y=130`. This image therefore
-  does not amend the shell dimensions in sections 2 and 4.
-- Identity is illustrative: the atom icon, `KERNEL` label, article names,
-  breadcrumb and article copy MUST be replaced with the actual service icon,
-  name and versioned internal documentation. They do not create reusable
-  product names or content requirements.
-- Page title: `Documentation`, Space Grotesk Bold at the standard `80px` desktop
-  size and the shared page-title position. Production uses the configured
-  accent for the title. The white title in this raster is a non-normative source
-  state, not a new palette exception.
-- Current sidebar destination: Documentation remains in the unnumbered bottom
-  group. It uses accent text to communicate the current page, without a frame,
-  arrow, scale effect or drag behavior. The white current label in the raster
-  is likewise non-normative. Logout remains white until its own hover/focus
-  state.
-- Desktop content begins at application-local `left: 280px; top: 151px`, or
-  source `left: 288px; top: 159px`. It forms a two-column grid: a `220px`
-  documentation navigation column, a `30px` gap and an article surface with a
-  `1120px` maximum width. Extra viewport width stays after the article instead
-  of stretching prose into an unreadable line length.
-- Search is `220x40px` in the reference, with black fill, a `1px` nested
-  `#CCCCCC` outline and `12px` horizontal inset. Its Consolas label is a prompt,
-  not a substitute for an accessible name. Input, clear and no-result states
-  preserve the same box dimensions. Because the illustrated query is empty,
-  its clear control is correctly absent; a non-empty query shows the mandatory
-  cross at the field's right/inline end with the reserved inset from section
-  5.6.
-- Documentation navigation has no additional outer card. Group headings use
-  muted/80%-white Consolas Bold; article labels use Consolas Regular. Article
-  rows are approximately `36px` high and use `1px #CCCCCC` separators across
-  the `220px` column. These are navigation separators, not prohibited data-table
-  row dividers. Active, hover and keyboard-focus states use the configured
-  accent without changing row height or column width.
-- Navigation order follows the document information architecture, not the
-  primary sidebar's numeric ordering. Groups such as getting started,
-  operation and maintenance are examples; each service supplies only groups
-  with real, searchable articles. Empty groups are omitted.
-- The article surface begins at source `left: 538px; top: 159px`, has a
-  `1120px` reference width, black fill and a `1px` top-level white outline. Its
-  content inset is `32px` horizontally, `24px` at the top and at least `64px` at
-  the bottom. The article grows vertically with content; clipping at the bottom
-  of the PNG is a viewport crop, not a fixed article height.
-- Article typography uses Consolas: breadcrumb and body `14px/22px`, article
-  title Bold `36px/44px`, and level-two headings Bold `24px/30px`. Long prose
-  wraps within the article column. Heading hierarchy remains semantic and must
-  not be simulated only with font size.
-- The breadcrumb identifies the service/document set and current article. It is
-  keyboard navigable where an ancestor is actionable, uses text separators
-  rather than decorative images and never exposes filesystem paths or private
-  repository coordinates.
-- Article section dividers use the nested `#CCCCCC` line. The reference note is
-  a rectangular `#111111` surface with a `2px` white left rule and approximately
-  `16px` padding; semantic success, warning or failure notes additionally use
-  the prescribed green, accent or red meaning in text/icon treatment and never
-  rely on color alone.
-- Code blocks, tables, lists and links follow section 5.7. Copy actions provide
-  explicit success/failure feedback and retain a manual-selection fallback for
-  embedded browsers where programmatic clipboard access is unavailable.
-- At widths near `1000px` the documentation navigation stacks before the
-  article and both use the available main width. At `720px` and below the global
-  sidebar becomes its standard modal overlay; documentation navigation remains
-  in normal document order, search stays reachable and no horizontal page
-  scrolling is introduced.
-- When the global sidebar is hidden at desktop width, the whole documentation
-  grid moves left and may use the released width, while the `220px` navigation,
-  `30px` inter-column gap and `1120px` readable article maximum remain stable.
-  Verify open and hidden states at `1919x1034` and `1920x1080` as required by
-  section 9.
+The raster is a reference implementation of the universal Documentation view,
+not a source of product terminology. Its identity, version, breadcrumb, section
+names and article copy are illustrative and MUST be replaced with the adopting
+application's real, versioned operator documentation. No name shown in the
+raster becomes a reusable product or content requirement.
+
+**Shell and outer workspace**
+
+- Source canvas: `1661x1033px`. Any dark matte, crop, shadow or browser capture
+  edge belongs to screenshot presentation and is not an application surface.
+- The shared desktop header is `123px` high. The content area uses `28px` top,
+  `30px` inline and `40px` bottom padding. The page title follows the standard
+  desktop display role: Space Grotesk Bold, up to `80px`, at the shared title
+  origin and in the configured accent.
+- The Documentation workspace is `width: 100%`, `max-width: 1610px`, centered
+  inside the content insets and sized to the remaining viewport height. In the
+  canonical desktop shell its block size is `calc(100dvh - 191px)`, preceded by
+  a `100vh` fallback. The `191px` is derived from `123 + 28 + 40`; an adopting
+  shell recomputes the expression from its own shared tokens.
+- The workspace uses `min-height: 0`, `overflow: hidden` and never becomes a
+  page-level scrollbar. Every flex/grid ancestor on the path to the two inner
+  scroll regions also uses `min-height: 0`; flexible inline tracks use
+  `min-width: 0`.
+- On desktop the workspace grid is `220px minmax(0, 1fr)` with a `30px` gap and
+  `align-items: stretch`. The article column is capped at `1120px`; surplus
+  inline space remains outside the article rather than lengthening prose.
+- Hiding the global sidebar only releases shell width. It does not change the
+  `220px` documentation-navigation width, `30px` gap, `1120px` article maximum
+  or any internal scroll ownership. Showing it again reflows the grid without
+  restoring a stale horizontal offset.
+
+**Exactly two scroll owners**
+
+- The first scroll owner is the complete documentation-navigation region:
+  search, group headings and section destinations. The second is the complete
+  article region: guide header, all matching sections, notes, lists, code and
+  tables. There is no third Documentation scrollbar on the grid, page body,
+  shell or browser document.
+- Both regions stretch to the workspace block size and set `min-height: 0`,
+  `overflow-y: auto` and `overscroll-behavior: contain`. Scrolling one MUST NOT
+  alter the other's `scrollTop`. Reaching either boundary MUST NOT chain the
+  remaining wheel/touch delta to the page or the other region.
+- Both visual scrollbars are hidden while their scrolling capability remains
+  intact. Use `scrollbar-width: none` for Firefox and a `::-webkit-scrollbar`
+  rule with `display: none; width: 0; height: 0` for Chromium/WebKit. Do not
+  hide overflow, intercept normal wheel/touch input or cover a scrollbar with
+  an overlay.
+- Pointer-wheel and touch input belong to the region under the pointer. Page
+  Up/Down, Home/End and arrow-key input belong to the focused region. Each
+  region therefore has an accessible name; the article owner is focusable when
+  its contents do not provide a dependable keyboard entry point. Hidden
+  scrollbars do not remove visible focus treatment or keyboard operability.
+- The search field and navigation sections remain visually stationary when the
+  article is scrolled because the left `scrollTop` is unchanged. Conversely,
+  scrolling a long navigation index does not move the guide header or article.
+  `position: sticky` on the left column is neither required nor an equivalent
+  substitute for the two-owner model.
+
+**Navigation region**
+
+- The desktop region is exactly `220px` wide and has no enclosing card or outer
+  outline. Its inner stack is a grid with `20px` row gap and `30px` bottom
+  padding, allowing the last destination to clear the viewport edge.
+- Search is `220x40px`, black, with a `1px #CCCCCC` nested outline and `12px`
+  horizontal inset. Placeholder text is not its accessible name. A non-empty
+  query reserves room for the clear cross defined in section 5.6; input, clear,
+  loading and no-result states do not change the control's dimensions.
+- Filtering is immediate and local to the rendered documentation set. It uses a
+  trimmed, case-insensitive query over visible title, summary, keywords and body
+  text. A query change or clear resets only the article scroll owner to
+  `scrollTop = 0`; the navigation position may remain only if it is clamped to
+  the new range.
+- Group headings use Consolas Bold in the nested 80%-white tone with `8px`
+  block margins. Destination labels use Consolas Regular, fill the `220px`
+  column, have `min-height: 36px`, `7px` block padding and a `1px #CCCCCC`
+  block-end separator. Hover, focus and current-section states use accent and
+  `#111111` hover fill without moving, scaling or resizing a row.
+- Navigation order follows the information architecture, not primary-sidebar
+  numbering. Empty groups are omitted. If no section matches, the search remains
+  operable and the article owner renders a bordered no-result message with
+  `30px` padding rather than collapsing either grid track.
+
+**Article region**
+
+- The article owner is black with a `1px` top-level white outline,
+  `max-width: 1120px` and `24px 32px 64px` padding. It stretches to the bounded
+  workspace height. The inner semantic document grows to any required length
+  and is scrolled inside this owner; it MUST NOT increase page height.
+- The guide header has `30px` bottom padding and a `1px #CCCCCC` block-end
+  divider. Its kicker is `14px/22px` Consolas in accent. The guide title is
+  `36px/44px` Space Grotesk Bold with `8px` vertical separation. The scope
+  paragraph is `14px/22px` Consolas in the secondary text color.
+- Every visible topic is an `article` or equivalent semantic section with one
+  stable unique fragment identifier, `30px` block padding, `30px`
+  `scroll-margin-top` and a `1px #CCCCCC` trailing divider. The final visible
+  section omits the divider. Level-two topic headings are `22px` Bold in accent;
+  nested headings are `16px` Bold with approximately `26px` top margin. Summary
+  copy has `22px` bottom separation; body copy uses `14px/22px` or an equivalent
+  `1.7` line height.
+- Lists use `24px` inline-start padding and `8px` item gap. Inline code uses a
+  `1px #CCCCCC` outline, `1px 4px` padding and `#111111` fill. Code blocks use a
+  `1px` nested outline and `14px` padding, with horizontal scrolling only where
+  wrapping would corrupt code. Tables fill the article width, collapse borders
+  and use `8px` cell padding; at narrow widths the table wrapper, never the
+  page, may scroll horizontally.
+- Notes use a rectangular `#111111` surface, `2px` accent inline-start rule and
+  `14px` padding. Success, warning and failure meaning supplements color with
+  explicit text or an icon. Links, copy actions and interactive examples expose
+  pointer, keyboard, success and failure states; clipboard failure retains a
+  manual-selection fallback.
+- The kicker or breadcrumb identifies the current application, document version
+  and guide context without exposing filesystem paths, private repository
+  coordinates, credentials or secret-bearing identifiers. Actionable ancestors
+  are keyboard operable and use textual separators instead of decorative-image
+  separators.
+
+**Navigation and state mechanics**
+
+- Activating a destination calculates its position relative to the article
+  owner and scrolls that owner only, leaving page and navigation offsets
+  unchanged. The target rests `30px` below the article owner's top edge. Smooth
+  movement is optional; reduced-motion preference always uses an immediate jump.
+- Article scrolling continuously synchronizes exactly one current destination
+  with the reading position. Use a line `30px` below the article owner's top:
+  select the last visible topic whose block-start has crossed it, the first
+  visible topic before any crossing, and the final visible topic at maximum
+  scroll. Apply accent and current semantics without moving the navigation/page,
+  changing focus or triggering a feedback scroll.
+- Keyboard activation either retains focus in the navigation while exposing the
+  current target state, or moves focus to the target heading without breaking
+  reading order. If fragment URLs/history are implemented, back and forward
+  restore a coherent target inside the same article scroll owner.
+- Filtering renders all matching topics in one continuous semantic document,
+  preserving document order and stable identifiers. Clearing restores the full
+  document at article offset zero. Reopening the view resets both owners unless
+  an explicitly documented per-view restoration policy is implemented.
+
+**Responsive geometry**
+
+- Above approximately `1000px`, the two owners are side by side. At and below
+  that breakpoint the grid becomes one column with two bounded rows:
+  `minmax(160px, 34%) minmax(0, 1fr)`. Navigation occupies and scrolls inside
+  the first row; article occupies and scrolls inside the second. Stacking MUST
+  NOT merge them into one page scrollbar.
+- At `720px` and below, the shared header is `96px`, page content uses `20px`
+  block padding and workspace height is `calc(100dvh - 136px)` with `100vh`
+  fallback. Rows become `minmax(150px, 34%) minmax(0, 1fr)`. Article padding is
+  `20px 20px 48px`; its guide title is `30px/38px`. The global sidebar follows
+  its modal-overlay contract and introduces no horizontal page overflow.
+- On exceptionally short viewports, preserve the search, at least one navigation
+  row and a usable article viewport. Both owners absorb overflow internally.
+  Resize, zoom, mobile browser chrome and virtual-keyboard changes clamp stale
+  offsets into the new valid ranges rather than leaving blank space.
+
+**Required visual and interaction proof**
+
+- Capture desktop sidebar-open and sidebar-hidden states at `1919x1034` and
+  `1920x1080`, plus representative `1000px`, `720px` and short-height cases.
+- In each state, independently drive the left owner to its end and the right
+  owner to a middle/deep section with mouse/trackpad, keyboard and touch where
+  supported. Assert that the other owner and page offset remain unchanged and
+  that neither scrollbar is visually present.
+- Verify search hit, clear and no-result states; destination navigation with the
+  `30px` reading offset; current-destination synchronization during pointer,
+  touch, keyboard and scripted article scrolling; first/last-topic boundary
+  behavior; reduced motion; focus visibility; 200% zoom; long labels; long
+  code/table content; and the last navigation/article item clearing its bottom
+  inset without clipping.

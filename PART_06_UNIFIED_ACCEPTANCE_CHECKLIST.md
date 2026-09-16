@@ -81,6 +81,21 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
 - [ ] Search, collection metrics and page-level actions share one sticky command
       bar above the list and remain visible during list scrolling.
 - [ ] Filtered lists preserve clear result counts and disable ambiguous reorder.
+- [ ] Documentation is a viewport-bounded workspace below the shared header;
+      its outer grid, page body and browser document do not become scroll owners
+      when the guide or its navigation exceeds the available height.
+- [ ] Documentation has exactly two independent vertical scroll regions: the
+      complete search/navigation column and the complete article surface. Both
+      hide the visual scrollbar while preserving wheel, trackpad, touch and
+      keyboard scrolling, visible focus and accessible names.
+- [ ] Scrolling either Documentation region changes only that region's offset;
+      search and section destinations remain stationary while the article moves,
+      article content remains stationary while navigation moves, and boundary
+      gestures do not chain to the page or the other region.
+- [ ] Documentation destination activation scrolls only the article owner with
+      the prescribed reading offset; filtering/clear handles article scroll
+      state and no-result output coherently; responsive stacking preserves the
+      same two-owner contract with no horizontal page overflow.
 - [ ] A visual-only node canvas exposes no execution path and loads only
       allow-listed node definitions.
 - [ ] Every supported node can enter and leave a Container without losing its
