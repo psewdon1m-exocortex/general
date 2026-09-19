@@ -260,16 +260,16 @@ The operator's update check is informative. The privileged updater resolves
 the release independently and does not trust the UI response.
 
 1. The application authenticates to the control-plane configuration registry.
-2. It validates snapshot schema, revision and checksum and stores a
-   last-known-good copy.
-3. It reads the repository location from a namespaced registry entry.
-4. It queries the hosted release API and displays installed and available
-   versions.
+2. Its local Updater validates Register schema, revision and checksum. Only
+   non-secret reference metadata may enter a last-known-good copy.
+3. Updater reads the repository location from a namespaced registry entry.
+4. Updater queries the hosted release API; the application displays its
+   installed/available version result.
 5. On installation, it sends a request ID, local service identity, selected
    version and checksummed backup to the updater.
 6. The updater reloads its root-owned local profile and the validated registry
    snapshot, obtains the repository location itself and queries releases again.
-7. It selects an exact non-draft semantic version and binds manifest identity
+7. It selects an exact non-draft, non-prerelease semantic version and binds manifest identity
    to that tag.
 
 A checksummed last-known-good cache detects corruption and permits temporary
@@ -298,7 +298,8 @@ Required controls:
 - a host-wide mutation lock;
 - rejection of a second daemon on an active socket;
 - bounded bodies, downloads, headers and command durations;
-- root-owned registry, job and backup paths with restrictive modes.
+- root-owned registry and job metadata paths with restrictive modes;
+- no persistent update backup archive.
 
 Read-only health and job status may rely on socket access. Update and rollback
 require both socket access and the matching token.
@@ -319,13 +320,16 @@ stopped and uncreated services untouched.
 
 An update request is accepted only when a non-empty backup within the defined
 limit matches its SHA-256. The implemented privileged boundary uses a 128 MiB
-decoded-byte maximum. The backup is persisted before release resolution or
-host mutation. Reusing the request ID returns the existing job instead of
-starting a duplicate.
+decoded-byte maximum. The head signs a short-lived receipt binding the exact
+standard ZIP to its head ID, service, target version, request ID, size and SHA-256.
+The browser saves the ZIP and returns the same bytes with explicit saved-copy
+acknowledgement. Updater verifies the receipt and checksum before mutation.
+Only job metadata is persisted; backup bytes remain in memory for the operation.
+Reusing the request ID with the same scope returns the existing job.
 
 | State | Meaning |
 | --- | --- |
-| `REQUESTED` | Request, local identity and backup are accepted and persisted |
+| `REQUESTED` | Request and backup are accepted; only job metadata is persisted |
 | `BACKUP_VERIFIED` | Backup bytes exist and match the supplied digest |
 | `ARTIFACT_VERIFIED` | Tag, manifest, bundle, image and updater compatibility passed |
 | `PULLING` | Exact immutable image is being downloaded |
@@ -349,43 +353,58 @@ The updater applies a release as follows:
    atomic rename.
 6. Replace only the target Compose service without removing persistent volumes
    or unrelated services.
-7. Poll loopback health and, when required, public verified HTTPS health.
-8. On failure after old state was captured, restore old image/version, start
-   the old service, verify health and invoke its authenticated local restore
-   endpoint with the backup.
+7. Poll loopback health, verify that its reported version equals the selected
+   release and, when required, poll public verified HTTPS health.
+8. On failure after mutation, stop writers and restore the original data and
+   deployment through the service's supported recovery path, then verify the
+   old running version. Normally this uses the old authenticated restore endpoint.
+   If a signed manifest declares a compatible offline recovery tool, use that
+   exact candidate image by digest before restarting the old deployment.
+
+Legacy Volt/Saturn releases below 0.2.0 may omit a health version. Only in that
+case may Updater verify the actual running container image and image ID against
+the pinned immutable digest. A wrong reported version, mutable tag or stopped
+container is never accepted through this compatibility path. New releases must
+report their running application version.
 
 Release resolution, compatibility or pull failure leaves the running service
 untouched.
 
-The reference updater verifies a newly downloaded Compose archive but reuses
-the already installed Compose project rather than applying that archive. It
-also validates that a database schema field exists but delegates migrations to
-service startup. Consequently an image-only update cannot safely introduce
-required Compose-structure changes unless the updater contract is extended.
+The updater applies allowlisted deployment files from the verified bundle and
+preserves operator-owned environment values. Rollback metadata contains Compose
+content and names of added environment defaults, never a copied .env with secrets.
 
 ## 30. Backup, Rollback And Job Retention
 
-The application creates and imports logical backups. The updater treats them as
-opaque bytes and verifies only safe filename, size and SHA-256.
+The application uses its standard full ZIP builder for manual, automatic and
+pre-update exports. An update MUST use exactly the ZIP downloaded by the operator;
+creating a second snapshot during apply is prohibited. Install stays blocked
+until the browser save API has completed, or, where unavailable, the user has
+explicitly confirmed that the initiated ZIP download is saved. Download initiation
+alone MUST NOT be represented as proof of a disk save.
 
-A fresh backup may be staged for a short interval and downloaded by the
-operator, or created immediately when the apply request starts. The unified UI
-SHOULD make an operator-held copy explicit, especially before irreversible
-schema changes.
+Update archives MUST NOT be retained on the application host. Their durable homes
+are the user's computer and Saturn via Neptune's independent automatic pipeline.
+Temporary generation files are deleted after transfer and cleaned after interrupted
+downloads at startup. Updater holds rollback bytes only in process memory, clearing
+them at termination of the operation. Restore tools needing a path receive a
+restricted, verified tmpfs file, removed in a finally/defer cleanup; no /tmp fallback.
 
-Rollback restores image and version first, then sends the backup to the old
-local restore endpoint. Both the updater call and restore endpoint use
-constant-time token comparison.
+After daemon/host restart or later manual rollback the operator uploads the saved
+original ZIP. Its SHA-256 MUST match the original job. The UI must explain this
+recovery condition. Compose metadata is retained; secret-bearing .env copies and
+ZIP content are excluded. Terminal job metadata retention is bounded (20 jobs,
+30 days by default). Legacy archive directories are migrated and cleaned at startup;
+metadata preserves the original checksum for operator-copy recovery.
 
-Jobs are written through temporary files and atomic rename with mode `0600`;
-backups live under mode-`0700` directories. Terminal job and backup retention is
-bounded by both count and age. A practical baseline is the newest 20 terminal
-jobs and 30 days.
+An ordinary host reboot preserves installed applications and their persistent
+databases/settings. It does not require restoring every service from backups.
+The saved-copy recovery requirement applies to an interrupted update that needs
+data rollback, or to an explicit later restore.
 
-Persisting a non-terminal job does not automatically resume its goroutine after
-daemon restart. A new design MUST define startup reconciliation: resume safely,
-roll back, or mark interrupted with an operator action. It must not leave a job
-indefinitely ambiguous.
+A persisted non-terminal job does not automatically resume its goroutine after
+restart. Startup reconciliation must expose a terminal interrupted/error state with
+an actionable recovery message, or recognize its still-running self-update supervisor.
 
 ## 31. Update-Helper Self-Update
 
@@ -524,3 +543,36 @@ messaging connection or central synchronization surfaces defined by the
 [service-agent UI guide](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md). Their
 jobs use the same rule: request acceptance is pending, and the UI polls through
 reconnect until a terminal state and refreshed component health are available.
+
+## 35. Unified Update Dialog (protocol 2, 2026-09-17)
+
+The normative visual references are src/check_for_updates.png, src/update - stage 1.png,
+src/update - backup warning.png, src/update - stage 2.png, src/update - stage 3.png and
+src/update - no updates.png. The stage-2 legacy text about a stored server backup is
+superseded by section 30. All five heads share the same flow; Laboratory adapts its
+colors and typography to its own theme.
+
+Check for updates opens the overlay and starts discovery. Check again repeats it.
+Install X.Y.Z opens the mandatory ZIP warning for a head. Helper updates (Updater,
+Neptune and consumed Gryphon) use the same overlay without the ZIP step. No component
+may silently install a different version from the selected candidate. Stable selection
+sorts numeric SemVer, excludes draft/prerelease/unqualified tags and rejects downgrade.
+
+The panel shows a durable job ID, actual state and error, and a progress bar. If a
+phase has no measured total, the bar is indeterminate; fabricated percentages are
+forbidden. Polling recovers after a head restart and browser reload. Completion is
+followed by fresh discovery. Remote Saturn Neptune jobs report waiting until the
+agent both completes the command and reports the selected running version; remote
+check-in latency must not be presented as instantaneous progress.
+
+First migration: publish the signed Updater 0.5.0 release before building heads pinned
+to it. Download a standard backup from each old head before maintenance. Upgrade
+Updater through `updater update --head <id>` using the existing trust pin. Stream the
+saved operator ZIP to `updater migrate-head --head <id> --version <exact-version>
+--saved-backup-stdin --confirm-saved` as root. This command reads only memory and
+submits the standard authenticated protocol-2 request; the daemon still verifies
+the receipt, signed release and digest and preserves the existing .env and data.
+Do not rerun a first-install bootstrap over an existing head or use the old direct
+apply route. Follow the returned job to verified completion. Subsequent releases
+use the unified overlay. No private signing keys, manual scp or trust fingerprint
+setup is added.

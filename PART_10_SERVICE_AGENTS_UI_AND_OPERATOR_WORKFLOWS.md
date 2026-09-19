@@ -220,3 +220,12 @@ narrow viewport:
   overlap, clipping or horizontal scroll;
 - visual comparison against the three linked templates for palette, borders,
   typography, spacing, row height, action width and responsive composition.
+
+## Update workflow clarification — 2026-09-17
+
+For service upgrades, Part 05 sections 29–30 and 35 define the mandatory saved-copy
+ZIP protocol and supersede any earlier permission to retain update archives.
+A transactional restore with a rollback journal may replace a redundant pre-restore
+ZIP; a restore tool that requires a snapshot must keep it in temporary RAM storage
+for the operation, never as a retained application-host archive. Helper updates
+use the same discovery/status overlay without a user-data backup.

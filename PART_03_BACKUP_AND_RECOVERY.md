@@ -306,3 +306,12 @@ paths and why none can affect persisted state, archive content or restore.
       a clean disaster-recovery environment.
 - [ ] Verify pre-restore snapshot and rollback behavior.
 - [ ] Measure peak RAM and temporary disk against explicit budgets.
+
+## Update workflow clarification — 2026-09-17
+
+For service upgrades, Part 05 sections 29–30 and 35 define the mandatory saved-copy
+ZIP protocol and supersede any earlier permission to retain update archives.
+A transactional restore with a rollback journal may replace a redundant pre-restore
+ZIP; a restore tool that requires a snapshot must keep it in temporary RAM storage
+for the operation, never as a retained application-host archive. Helper updates
+use the same discovery/status overlay without a user-data backup.
