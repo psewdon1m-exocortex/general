@@ -75,11 +75,28 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
       its padded inline end for a non-empty query; activation clears the full
       query, refreshes results, retains input focus and causes no overlap,
       resize or duplicate native cancel icon.
+- [ ] The canonical collection search is a square-cornered `40px`-minimum
+      three-track unit (`18px` icon / flexible input / `32px` clear action),
+      with `12px` inline insets and gaps, `14px` Consolas input text, black fill,
+      80%-white resting border/icon/placeholder and white query text.
+- [ ] Search focus-within changes the outer border to accent without drawing a
+      second input outline; hover/focus growth is composited for `160ms`, clear
+      hover/focus uses accent over `#111111`, and reduced motion preserves all
+      non-motion state cues.
+- [ ] Bounded collection search updates on every edit using trimmed,
+      locale-stable case-insensitive substring matching across title, grouping
+      labels and field keys plus non-secret values only; active scope composes
+      with AND, and empty/Escape/clear restores the current scope and canonical
+      order without an audit event.
 - [ ] Overlays center on every open, remain within the viewport, trap and restore
       focus and do not discard credential or restore state accidentally.
 - [ ] Mutations show pending and final notices.
 - [ ] Search, collection metrics and page-level actions share one sticky command
       bar above the list and remain visible during list scrolling.
+- [ ] The canonical collection bar is at least `60px` high with `10px 30px`
+      padding, `12px` grid gaps and a `minmax(240px, 1fr)` search track; it
+      reflows to two columns at `1000px` and one column with `8px 16px` padding
+      at `720px` without changing the search component's internal measurements.
 - [ ] Filtered lists preserve clear result counts and disable ambiguous reorder.
 - [ ] Documentation is a viewport-bounded workspace below the shared header;
       its outer grid, page body and browser document do not become scroll owners
@@ -115,9 +132,21 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
 - [ ] Visual checks cover every linked PNG plus `1919x1034` and `1920x1080` with
       sidebar open/hidden; screenshots contain no overlap or clipped focus.
 - [ ] Every mutation that affects protected state writes an audit event.
-- [ ] Shared-agent panels match the registered Backup, Bot connection and
-      Updates templates while following the written service-agent state and
-      control matrix where a raster example is obsolete.
+- [ ] Settings matches all six registered Logs, Backup, Updates, Gryphon
+      Connection before/after and Wyverne Connection examples in Part 01
+      section 10.5, including typography, measured spacing, borders and controls.
+      Written corrections to illustrative labels/data take precedence.
+- [ ] Every applicable interface and embedded guide uses the canonical
+      Gryphon Connection title. Unused integrations have no dummy ready card.
+- [ ] All three Initialize actions use Part 01 section 10.9's common overlay
+      family, adapted only through an approved theme; states and necessary
+      controls remain equivalent on narrow screens, at 200% zoom and by keyboard.
+- [ ] Application and consumed-component update dialogs match all six embedded
+      Part 01 section 10.8 examples: measured dimensions, font roles, colors,
+      spacing, close/warning controls, responsive layout and required progress.
+- [ ] Reference-image names/versions are replaced by actual scoped data;
+      historical server-backup text and unsafe enabled actions are corrected,
+      and an approved alternative theme preserves the same workflow.
 
 ## 36. Logging
 
@@ -132,6 +161,12 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
 - [ ] ZIP generation streams or spools within RAM and temporary-disk budgets.
 - [ ] Archive contains manifest, events, README and detailed `errors.json`.
 - [ ] Export is authorized, audited and sent with no-store headers.
+- [ ] The revision-logging checkbox persists the future routine-event recording
+      preference rather than filtering already stored rows. Mandatory errors,
+      security and mutation events remain recorded; rejected saves revert.
+- [ ] Live entries and older pages remain newest-first, deduplicated and
+      bounded; pagination preserves the reading position and handles pending,
+      empty, end-of-history and retry states independently of export.
 
 ## 37. Backup And Restore
 
@@ -146,12 +181,51 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
       custom overlay around the native picker and validates before mutation.
 - [ ] External decryption-key recovery is documented and tested.
 - [ ] A real round-trip and a failed-restore rollback test pass.
-- [ ] Module Settings owns manual backup/restore and local backup-agent
-      initialization only; the central synchronization workspace is the sole schedule,
-      explicit-run and fleet control plane.
+- [ ] Each service's Backup card owns manual backup/restore, initialization,
+      its own enabled/interval policy and explicit remote-run controls.
+      The central panel exposes observation and authorized fleet/identity
+      administration, with no second schedule editor or service backup-run action.
 - [ ] Encrypted-store initialization proves both independent workers: recovery
       ZIP and its single-file portable-vault mirror. Partial configuration is not success
       and exposes the repair workflow.
+
+### 37.1 Service-Owned Schedule Acceptance
+
+Use [Part 09 section 5](./PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md#5-ongoing-neptune-interaction)
+and [Part 10 section 2](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md#2-backup-and-neptune-panel).
+Record behavior for every declared archive, mirror or folder pipeline.
+
+- [ ] Owner/deployment/pipeline identity is derived server-side; cross-service
+      policy reads/writes and runs are denied. Typed authenticated actions use
+      expected revision and stable operation/request IDs.
+- [ ] New profiles default to disabled/24 hours. Existing values are preserved.
+      Invalid hours, integer overflow and overlapping Enter/blur submissions
+      cannot produce an unintended policy change.
+- [ ] Draft, saving, persisted/pending and agent-applied are distinct.
+      A stale revision is rejected; multiple tabs converge without lost edits.
+      Failed persistence does not claim a durable browser-local queue.
+- [ ] Enabling/changing interval calculates the next due without an implicit
+      run. Disable prevents new scheduled runs while an accepted transfer
+      reaches its safe terminal/retry state.
+- [ ] Manual remote run is independent of enabled state, does not reset next
+      due by default, returns one durable run ID and cannot overlap the same
+      project's backup. It is not the local download/update saved-copy gate.
+- [ ] Browser closure, application/agent restart and control-plane outage
+      preserve the applied schedule and resumable transfer. Test bounded
+      overdue recovery without a catch-up storm and display timezone correctly.
+- [ ] All required pipelines have independent policy/status and correct remote
+      receipts. Export, upload and committed success are different states;
+      a healthy archive worker cannot hide a failed required mirror worker.
+- [ ] A real logical backup/restore retains enabled state, interval, safe
+      destination/profile intent and recording/UI preferences. Missing policy
+      data fails export rather than silently omitting settings.
+- [ ] Restored enabled intent remains visible while execution awaits owner,
+      enrollment, destination and applied-policy verification. Old queued
+      commands and cloned owner identities do not cause duplicate remote work.
+- [ ] Migration preserves policy revisions, due times and active runs; central
+      schedule writes are fenced before the owning service becomes the sole
+      authoring workflow. Delayed old commands and duplicate manual requests
+      are rejected/deduplicated. Rollback also preserves one writer.
 
 ## 38. Deployment
 
@@ -196,6 +270,42 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
 - [ ] coturn is absent unless an explicit WebRTC NAT-traversal requirement and
       project-specific security decision make a separate TURN service necessary.
 
+### 38.1 Shared-Agent Initialization Acceptance
+
+Use the [Initialize workflow](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md#8-initialize-overlay-workflow)
+for every consuming application and each declared integration.
+
+- [ ] Opening Initialize performs read-only preflight. Cancel before submit
+      causes no installation, enrollment, binding or schedule change.
+- [ ] Confirmed absence, unreachable existing instance, incompatible version
+      and missing client enrollment have distinct next actions. A timeout
+      never causes a duplicate installation.
+- [ ] Test valid, invalid, expired, consumed and wrong-profile enrollment
+      input where applicable; verify owner-scope and authorization failures.
+      No consumer form collects bot/provider secrets or a shared admin token.
+- [ ] Double submit, concurrent consumers, helper restart and lost acceptance
+      response preserve one shared instance and one scoped operation.
+      Existing clients and healthy pipelines retain their configuration.
+- [ ] Durable Job/State/message and real or indeterminate progress survive
+      close, reload and authenticated reconnect. Stale responses are ignored;
+      queued/accepted and reachable are not shown as initialization success.
+- [ ] Completion refreshes component health and verifies the declared client/
+      pipeline profile. Partial install/enrollment and failed verification
+      expose safe retry/repair without an implicit uninstall.
+- [ ] Initialize does not enable schedules, start backups or bind a function/
+      user implicitly. A separately required component update uses the common
+      update flow; it is not hidden inside enrollment.
+- [ ] Messaging function link, Telegram-user challenge and revoke/unlink have
+      separate scope and outcomes. No ready bot is invented; challenges expire
+      and only authoritative identity verification marks the user bound.
+- [ ] LLM client enrollment, allowed Adapter selection and function readiness
+      are distinct. Failed probes preserve binding; stale changes cannot
+      overwrite newer configuration or alter another client's Adapter.
+- [ ] Sensitive input starts empty and is cleared after use/dismissal; URLs,
+      browser persistence, logs, analytics and job receipts contain no secrets.
+- [ ] Keyboard focus, inline validation, accessible names, multiline failures,
+      reconnect, partial repair and terminal Done/Close match the common overlay.
+
 ## 39. CI, Release And Update
 
 - [ ] Every independently versioned service starts at `0.0.1`; `0.0.0` remains
@@ -225,10 +335,14 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
 - [ ] Update discovery occurs in an overlay and cannot initiate installation;
       Apply appears only after a newer release passes provenance and
       compatibility checks.
-- [ ] A verified backup exists before mutation.
+- [ ] Before application mutation, the exact standard full ZIP is saved on the
+      operator's computer and its scoped receipt/checksum are verified; typed
+      shared-component updates omit only this application-backup gate.
 - [ ] Pull precedes atomic image/version replacement.
 - [ ] Health failure triggers tested rollback.
-- [ ] Job and backup persistence are count- and age-bounded.
+- [ ] Job metadata is count- and age-bounded. No update backup ZIP or copied
+      secret-bearing environment is retained on an application/helper host;
+      temporary memory/tmpfs is cleaned on every terminal path.
 - [ ] Interrupted jobs have an explicit startup reconciliation policy.
 - [ ] Local update-helper self-update retains the old binary until new health succeeds.
 - [ ] Update-helper restart preserves the socket runtime directory; stale bind mounts
@@ -240,6 +354,98 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
       checksum artifact bytes after download.
 - [ ] Security documentation distinguishes implemented guarantees from trust
       assumptions and known gaps.
+
+### 39.1 Universal Update Workflow Acceptance
+
+This matrix applies to every current/future application and consumed shared
+component. Use the authoritative
+[visual ledger and embedded examples](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#108-update-dialog-templates),
+[backup lifetime](./PART_03_BACKUP_AND_RECOVERY.md#132-backup-lifetime-during-an-application-update)
+and [behavior contract](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md#34-operator-update-ui).
+A checked item requires recorded evidence; these requirements are not claims
+that an arbitrary existing implementation has passed.
+
+- [ ] Opening `Check for updates` opens the overlay immediately and sends one
+      discovery request. `Check again` sends a fresh request; repeated clicks
+      and stale/out-of-order responses do not duplicate work or change target.
+- [ ] Test no newer version, a valid newer version, incompatible version,
+      unknown installed version, offline source, unauthorized request, bad
+      provenance, unavailable helper and unsupported protocol independently.
+      Only a successful no-candidate result displays up-to-date.
+- [ ] Numeric semantic-version ordering, qualified namespace/channel filtering
+      and exact-target binding reject draft/prerelease, downgrade, wrong
+      component and same-version replacement. The helper independently verifies
+      the signed manifest and actual artifact bytes before mutation.
+- [ ] All consumed agents, including the update helper, have their own scoped
+      Settings controls. Application and component versions remain distinct;
+      unused components do not receive fabricated ready/update cards.
+- [ ] Application Install opens the mandatory full-ZIP warning. Cancel/Close
+      before submission leaves the running application unchanged. Creating the
+      backup alone or starting its download cannot pass the save gate.
+- [ ] Native save success, picker cancellation, denied permission, write
+      failure and ordinary-download fallback are exercised. Fallback requires
+      a separate unchecked acknowledgement; initiating download is not saved.
+- [ ] The combined `Create backup and install` action continues only after
+      native write/close succeeds. The ordinary-download fallback requires
+      explicit saved-copy acknowledgement and activation of `Install <version>`.
+      Filename, size, selected target and recovery consequences remain visible
+      without exposing archive contents; cancelled preparation cannot submit.
+- [ ] Wrong ZIP bytes, wrong target/profile, expired/malformed receipt,
+      missing acknowledgement, oversized body and archive-expansion abuse
+      fail before mutation. The accepted ZIP equals the saved operator bytes;
+      automatic backup alone and a newly generated second snapshot cannot pass.
+- [ ] Receipt/ZIP data never enter persistent browser storage, cache, URLs or
+      logs. Transfers require authentication and no-store responses. All
+      temporary memory/tmpfs is bounded and cleaned; unavailable tmpfs cannot
+      trigger a persistent-disk fallback.
+- [ ] A request ID is retained before submission. Repeated same-scope requests
+      resolve to one job; changed payload/scope is rejected. Two tabs and two
+      applications cannot bypass the host mutation lock.
+- [ ] A response containing a job ID is pending, not success. The progress
+      panel displays the correct job ID, target, machine state and sanitized
+      message from the server throughout apply and recovery.
+- [ ] Determinate progress has a valid measured total/unit; unknown totals use
+      an indeterminate track. No timer or state ordinal manufactures a percent.
+      Terminal `complete`/`1/1` on a failed job is never styled as success.
+- [ ] Closing/reopening, browser reload, lost submission response, session
+      expiry, container replacement, helper self-restart and offline recovery
+      preserve job identity and resume authenticated observation without an
+      automatic new mutation. Stale status and reconnecting are visible.
+- [ ] Verify a real signed upgrade and a forced post-mutation failure/rollback
+      from every declared supported previous-release baseline on the target
+      Linux/system-service/container environment. Compare authoritative data,
+      environment values, bindings and actual running versions.
+- [ ] `COMPLETED` requires matching running version/digest and health.
+      Installed metadata refreshes and fresh discovery runs afterwards.
+      A no-update result hides Install; a new candidate uses a new gate.
+      Recheck failure does not relabel a completed job as failed.
+- [ ] Rejection, `FAILED`, `ROLLING_BACK`, `ROLLED_BACK` and
+      `ROLLBACK_FAILED` have distinct persistent presentations and safe next
+      actions. Preserve both installation and recovery errors where relevant.
+- [ ] Rollback appears only for an authorized supported job and cannot race
+      active apply. Its confirmation identifies the restored version and
+      snapshot data-loss boundary. Correct saved ZIP succeeds; wrong ZIP fails
+      before restore; successful rollback reports the verified previous version.
+- [ ] Normal reboot preserves installed services and data. Interrupted-update
+      reconciliation exposes an actionable outcome; recovery after volatile
+      backup loss requests the original operator copy instead of pretending to
+      resume with an unavailable archive.
+- [ ] Shared-component updates reproduce the same overlay, explicit target/
+      impact confirmation, progress, reconnect and terminal checks without an
+      application backup. Configuration, tokens and registrations survive; a
+      shared instance is not duplicated or re-enrolled per consumer.
+- [ ] Remote component acceptance/waiting/check-in is not completion. The
+      operation ends only after the selected running version and health are
+      reported by the target, with offline state visible.
+- [ ] All six PNG compositions and additional checking/save/error/recovery
+      states pass the desktop, narrow, short-height, zoom, keyboard, native
+      picker, reduced-motion and approved-theme checks in Part 01 section
+      10.8.10. Explicit historical deltas are documented, not silently copied.
+- [ ] Operator documentation distinguishes the ordinary browser workflow from
+      a first-transition compatibility bridge. Bridge instructions name the
+      execution side/shell, exact source/target, binary-safe ZIP transport,
+      legacy retention cleanup and job verification. No manual private-key
+      transfer, weakened SSH access or destructive re-bootstrap is required.
 
 ## 40. Security And External Connections
 
@@ -365,7 +571,7 @@ The full rules are in the
 and [Part 01 section 5.7](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#57-documentation-view),
 with the additional profiles in
 [Part 07 section 50.3](./PART_07_SECURITY_AND_EXPOSURE_CONTROL.md#503-mandatory-pre-push-security-and-exposure-audit)
-and [SEO/GEO section 25.6](<./PART_08_SEO_AND_GEO.md#256-mandatory-pre-push-seogeo-impact-audit>).
+and [SEO/GEO/MCP section 26.8](<./PART_08_SEO_AND_GEO.md#268-mandatory-pre-push-seogeomcp-impact-audit>).
 
 ### 41.2 Unified Completion Conditions
 

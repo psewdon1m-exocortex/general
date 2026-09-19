@@ -32,6 +32,26 @@ The unified style is based on:
 - hierarchy expressed through line opacity, spacing and position rather than
   shadows or nested decorative containers.
 
+### Terminal operator profile
+
+The host-local terminal operator profile uses the same quiet, dense visual
+language, expressed in terminal cells. Its keyboard baseline is arrows,
+Enter, Esc and Tab; every mutation is available through visible menus and an
+explicit confirmation. Letter-key navigation, function keys, mouse support,
+special fonts and graphical terminal extensions are not prerequisites.
+Terminal fonts belong to the client. Monochrome rendering must preserve focus
+and textual status. Narrow/short terminals scroll the focused control into
+view, preserve form values across resize and keep an exit path available.
+
+Terminal clients must mask credential input, treat bracketed paste as data,
+strip terminal-control sequences from external labels, restore terminal state
+on normal exit/interruption and distinguish stale observations from current
+health. A terminal UI may observe a durable host job but must not own its
+execution lifetime. Terminal acceptance includes real PTY input, ordinary and
+application-cursor arrows, resize and reconnect; a PTY fixture does not by
+itself certify a named desktop or mobile SSH client. Browser pixel dimensions,
+DOM-specific behavior and raster typography are not terminal requirements.
+
 ### 1.1 Reference Templates And Precedence
 
 The PNG files in [`./src`](./src/) are normative visual references where this
@@ -857,13 +877,13 @@ mutation shows pending feedback and a final outcome.
 ### 5.5 Settings Information Architecture
 
 The references are [example settings main](<./src/example settings main.png>),
-[example settings backup](<./src/example settings backup.png>),
-[example settings updates](<./src/example settings updates.png>) and
-[example settings logs](<./src/example settings logs.png>).
-
-When a service integrates shared backup or messaging agents, the specialized references are
-[Backup](<./src/backup.png>), [Bot connection](<./src/bot connection.png>) and
-[Updates](<./src/updates.png>). Their concrete states, controls and ownership
+[Backup](./src/example-backup.png), [Updates](./src/example-updates.png) and
+[Logs](./src/example-logs.png). The connected-service references are
+[Gryphon Connection before binding](./src/exampe-bot_connection-before.png),
+[Gryphon Connection after binding](./src/example-bot_connection-after.png) and
+[Wyverne Connection](./src/example-wyverne.png).
+All six card examples are embedded and measured in
+[section 10.5](#105-settings-templates). Their states, controls and ownership
 boundaries are defined in
 [Service Agents: UI And Operator Workflows](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md).
 
@@ -1008,9 +1028,31 @@ failure stay in that overlay. Detailed archive and transaction requirements are
 defined in [Part 03](./PART_03_BACKUP_AND_RECOVERY.md).
 
 Backup-agent-aware services append the local agent status and contextual
-initialization/repair action defined by the service-agent UI guide. Automatic
-schedules and explicit remote runs remain in the central synchronization workspace; a module
-Backup card MUST NOT expose a second schedule authority.
+initialization/repair action defined by the service-agent UI guide. The owning
+service's Backup card is the sole operator editor for its automatic backup
+schedule and the place for its explicit remote backup action. The central
+storage/fleet panel may observe those values but MUST NOT offer another
+schedule editor or competing run button. Archive and dedicated-mirror
+policies remain separate, scoped to the owning service and persisted in its
+logical backup. Applied agent state is shown independently from saved intent.
+Initialize uses the common [section 10.9 overlay](#109-service-initialization-overlays).
+
+#### Service Connection Cards
+
+Every application consuming the messaging gateway uses the exact card title
+`Gryphon Connection`; `Bot connection` is a retired title, including in
+navigation labels, accessible names and embedded operator documentation.
+Every application consuming the LLM gateway uses the requested display title
+`Wyverne Connection`. These display labels do not rename executable, API,
+repository or configuration identifiers.
+
+Each card separates agent availability, service/client enrollment, functional
+binding and any user authorization. `Initialize` provisions or attaches the
+shared agent for this service; it does not silently link an unrelated function,
+authorize a user or replace a provider Adapter. A ready shared instance is reused.
+Its own version and check-for-update action remain a separate group.
+Initialization, function linking and revocation use the overlay family in
+section 10.9 and the [Part 10 state matrix](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md).
 
 #### Updates
 
@@ -1033,11 +1075,18 @@ requirements are defined in [Part 05](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md
 The main-module update, local update-helper self-update and shared-agent component update
 paths are labeled separately and never share an ambiguous Apply action.
 
+The complete universal update component, its measured geometry and all six
+embedded reference images are defined in
+[section 10.8](#108-update-dialog-templates). This contract applies to every
+current and future application and every shared component it consumes.
+The backup gate, live job lifecycle and first-transition exception are defined
+in [Part 05 sections 34–35](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md#34-operator-update-ui).
+
 #### Logs
 
 The Logs section is a bounded real-time stream with columns for type, body and
 local time. Information/success labels use `#62FF8C`; error/denied labels use
-`#F83D3D`; every outcome is also written as text. New rows append without
+`#F83D3D`; every outcome is also written as text. New rows merge without
 changing column geometry, unbounded client history is never accumulated and
 the view pauses or resynchronizes safely when hidden or disconnected.
 
@@ -1045,52 +1094,115 @@ the view pauses or resynchronizes safely when hidden or disconnected.
 Settings open. Detailed retention, redaction, pagination and archive rules are
 defined in [Part 02](./PART_02_OBSERVABILITY_AUDIT_AND_LOG_EXPORT.md).
 
-Within the `1610x399px` cropped Logs reference, exact measured coordinates are:
-
-| Log element | Template-local measurement |
-| --- | --- |
-| Header text (`TYPE BODY ... TIME`) | `left: 55.69px; top: 149px; 14px Consolas Bold` |
-| Type tag | `left: 55.69px`; success/info green or error red |
-| Body cell | `left: 123.41px; width: 1304.44px`; 80%-white |
-| Time cell | anchor `left: 1567.22px; width: 564.37px; transform: translateX(-100%)`; right aligned |
-| Consecutive row origins | `25px` step, demonstrated by `top: 198px` then `223px` |
-| Table outline and header divider | `left: 39px; width: 1540px`; `1px` 80%-white lines |
-
-Fractional coordinates are accepted output from the source layout. CSS may
-retain them or obtain equivalent device-pixel rasterization through flexible
-track calculation; it MUST NOT accumulate a visible drift across rows.
-Data rows do not have horizontal row dividers; rhythm is provided by the `25px`
-row-origin step.
+Use the [section 10.5.2 Logs ledger](#1052-logs-card). The recorder preference,
+cursor semantics and archive delivery are defined in Part 02. The optional
+service-revision logging checkbox changes future diagnostic recording, not
+mandatory security auditing, and is not merely a filter on this table.
 
 ### 5.6 Search
 
-Search is a rectangular toolbar unit, not a floating rounded box. Filtering is
-immediate, case-insensitive and client-side when the complete bounded dataset
-is already loaded. It matches the visible label plus stable identifiers and
-descriptive metadata appropriate to that view. Search does not create audit
-events or success notices.
+Search is a rectangular toolbar unit, not a floating rounded box. The component
+uses the canonical structure `search icon / input / clear action`; products MUST
+NOT replace it with a browser-native field whose geometry, cancel control or
+rounded corners vary by platform.
 
-An empty query restores the current list. No-match state remains muted and
-does not hide the create action.
+#### 5.6.1 Query And Result Behavior
 
-Every editable search field MUST contain a dedicated clear-query control at
-its inline end, inside the field border. The control is shown only while the
-query is non-empty; the empty state removes it from the tab order. Use the
-shared close/cross icon rather than a text letter, center the visible glyph in
-a platform-minimum hit target and keep the same interior end inset as the
-field's other horizontal padding. The input permanently reserves enough
-inline-end padding for that hit target, so text, selection and the clear
-control never overlap and the field does not reflow when the control appears.
-Use logical inline positioning so right-to-left layouts place it correctly.
+For a complete bounded collection, filtering is client-side and updates after
+every input change without an Apply action. The searchable copy of the query is
+trimmed at both ends and compared case-insensitively using a stable locale; the
+text displayed in the input is not trimmed, rewritten or case-folded. Matching
+uses substring containment, not prefix-only or fuzzy matching.
+
+For record collections, the search index contains the primary title, every
+grouping/project label, every field key and values explicitly classified as
+non-secret. Secret values MUST NOT enter the search index, browser search
+history, telemetry or diagnostic output. An active collection scope and the
+query compose with logical AND: search narrows the current scope and never
+silently broadens it.
+
+An empty query restores the current scope and its canonical order. A no-match
+state remains below the command bar, reports zero results in the collection
+information unit and does not hide page-level actions. Search and clear actions
+do not create audit events or success notices.
+
+#### 5.6.2 Exact Geometry And Typography
+
+The canonical search unit has the following geometry:
+
+```css
+.collection-search {
+  min-width: 0;
+  min-height: 40px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border: 1px solid var(--line-inner);
+  border-radius: 0;
+  background: var(--black);
+  color: var(--white-80);
+}
+
+.collection-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--white);
+}
+```
+
+The leading search icon is `18x18px`, uses no fill and uses the current
+secondary-text color with a `1.8px` round-capped, round-joined stroke. The
+input inherits the canonical `14px` Consolas stack and `400` weight. Placeholder
+text uses `--white-80`; implementations MUST set it explicitly rather than
+accept a user-agent placeholder color.
+
+Measured from the inner edge of the border, the inline sequence is exactly:
+`12px` inset, `18px` icon, `12px` gap, flexible input, `12px` gap, `32px`
+clear-action box, `12px` inset. The clear track is permanently reserved, so
+showing or hiding the action never changes input width, moves text or reflows
+the command bar. The desktop command-bar track containing the search unit is
+`minmax(240px, 1fr)`; the search unit itself remains shrink-safe through
+`min-width: 0`.
+
+#### 5.6.3 Color And Interaction States
+
+| State or element | Exact treatment |
+| --- | --- |
+| Resting surface | `#000000` background; `1px` `--line-inner` border (`rgb(255 255 255 / 80%)`, rendered `#CCCCCC` on black) |
+| Query text | `#FFFFFF` |
+| Search icon and placeholder | `--white-80` |
+| Field hover | Retain resting colors; use the proportional non-layout hover growth from section 3.1 with a centered origin and `160ms ease` transition |
+| Field focus-within | Border becomes `--accent`; the same non-layout growth applies; the inner input does not draw a second outline |
+| Clear action at rest | Transparent `32x32px` box; cross uses `--white-80` |
+| Clear action hover/focus | Cross and `1px` inset outline use `--accent`; background becomes `#111111`; geometry is unchanged |
+
+`prefers-reduced-motion: reduce` removes the growth transition while retaining
+the border, color and focus distinctions. The field's focus treatment MUST be
+visible even though the inner input has no independent outline.
+
+#### 5.6.4 Clear Action And Keyboard Contract
+
+Every editable search field contains a dedicated clear action in the reserved
+`32x32px` inline-end track, inside the field border. It uses the shared
+close/cross SVG rather than a text letter. While the query is empty, the action
+uses `visibility: hidden` and `opacity: 0`, is disabled, has no pointer events,
+is absent from the tab order and is hidden from accessibility APIs; its grid
+track remains present. While the query is non-empty, it becomes visible,
+enabled and keyboard reachable.
 
 Pointer or keyboard activation clears the complete query, emits the same
 filter update as ordinary input, restores the unfiltered current scope and
-keeps focus in the search field. `Escape` MAY perform the same clear action
-when the query is non-empty. The control has a localized accessible name such
-as `Clear search`, exposes disabled/read-only state correctly and receives the
-normal accent hover/focus treatment without resizing the field. Normalize or
-hide a browser's native search-cancel decoration when it would duplicate the
-application control.
+returns focus to the input on the next animation frame. Pressing `Escape` while
+the query is non-empty performs the same action and prevents the browser's
+competing default. The clear action has a localized accessible name such as
+`Clear search`. The input is `type="search"`, has a view-specific accessible
+name and hides the browser's native search-cancel decoration so only one clear
+action is exposed.
 
 The search field belongs to the collection command bar defined in section 6.
 It MUST NOT scroll away while the collection below it continues scrolling.
@@ -1365,9 +1477,10 @@ When present, controls appear in this left-to-right order:
 3. Primary collection action, normally create or add.
 4. Secondary collection actions, such as history, import, export or bulk edit.
 
-Search, information and actions share one horizontal line and one visual
-height. Do not put a create button at the bottom of a long list when it is a
-page-level action. Row-specific actions remain inside their own rows.
+Above the responsive breakpoints in section 6.2, search, information and
+actions share one horizontal line and one visual height. Do not put a create
+button at the bottom of a long list when it is a page-level action. Row-specific
+actions remain inside their own rows.
 
 If several metrics are required, combine them inside one information unit
 rather than turning each number into a separate card. The most important
@@ -1381,6 +1494,14 @@ The proven desktop geometry is:
 
 ```css
 .collection-command-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  min-height: 60px;
+  margin: -30px -30px 14px;
+  padding: 10px 30px;
+  border-bottom: 1px solid var(--line-outer);
+  background: var(--black);
   display: grid;
   grid-template-columns:
     minmax(240px, 1fr)
@@ -1391,27 +1512,28 @@ The proven desktop geometry is:
   gap: 12px;
 }
 
-.collection-search,
-.collection-information {
-  min-width: 0;
-  border: 1px solid var(--line-inner);
-  padding: 10px 12px;
-}
-
 .collection-list {
   margin-top: 14px;
 }
 ```
 
-The search unit is a two-column grid: a short uppercase or title-case prefix
-and `minmax(0, 1fr)` input separated by `12px`. The inner input has no second
-border; the toolbar unit provides the boundary. Base controls remain at least
-`36px` high.
+The negative inline and block-start margins cancel the canonical `30px` page
+padding, while the command bar's own `30px` inline padding realigns its content
+with the page. The search component's complete internal geometry is defined in
+section 5.6. Base command-bar controls are at least `40px` high.
 
 If the information unit has a primary value and subordinate digest or count,
 use two columns with `4px 14px` gaps and let the subordinate line span both
 columns. The primary value uses the accent color; labels and secondary values
 are muted.
+
+At viewport widths of `1000px` or less, the canonical four-track bar becomes
+two columns: `minmax(240px, 1fr) minmax(250px, auto)`. Auto-placement may form a
+second controlled row, but search remains first. At `720px` or less, it becomes
+one column, uses `margin: -16px -16px 14px` and `padding: 8px 16px`; the search
+unit fills the available track. These responsive changes do not alter the
+search unit's `40px` minimum height, `12px` internal insets/gaps, `18px` icon or
+`32px` clear-action track.
 
 ### 6.3 Sticky Behavior
 
@@ -1441,12 +1563,12 @@ The command bar is attached to the top of the list's scrolling context:
 - Filtering preserves scroll only when the current position remains valid;
   otherwise return the list to its first result.
 
-On ordinary desktop and tablet widths the units stay on one line. At a width
-where the four minimum columns cannot fit, a product may enter an explicit
-mobile mode: hide non-essential secondary metadata, shorten secondary actions
-to accessible icon buttons, or wrap the complete bar into two controlled rows.
-The bar remains one sticky unit, search stays first and the primary action
-never moves below the collection.
+Above `1000px` the canonical four units stay on one line. At and below the
+breakpoints specified in section 6.2, the complete bar reflows into two and then
+one column. A product may hide non-essential secondary metadata or shorten
+secondary actions to accessible icon buttons, but the bar remains one sticky
+unit, search stays first and the primary action never moves below the
+collection.
 
 ### 6.4 Behavioral Rules
 
@@ -2364,21 +2486,17 @@ remain normative even when they are not repeated in every entry.
 
 ### 10.5 Settings Templates
 
-The isolated Backup, Updates and Logs exports all show ordinal `02`. Those
-values demonstrate ordinal styling only; actual ordinals are recomputed from
-the persisted Settings-section order.
+The six embedded card exports below replace the retired backup, messaging,
+updates and isolated Settings-card images. Their ordinals are examples;
+actual values follow the persisted card order. Application names, versions,
+bot usernames, adapter providers and routes inside the PNGs are illustrative.
+The explicit `Gryphon Connection` and `Wyverne Connection` display labels
+are required where those components are consumed.
 
-The three service-agent exports are registered composition references:
-
-- [Backup](<./src/backup.png>) defines the backup-agent status-group rhythm, but its
-  local schedule editor is superseded by the central synchronization workspace;
-- [Bot connection](<./src/bot connection.png>) defines messaging-gateway card geometry,
-  while service-function and Telegram-user binding remain separate controls;
-- [Updates](<./src/updates.png>) defines the main release-status rows and action
-  alignment; component-specific versions stay in their own groups.
-
-The written service-agent UI guide takes precedence over obsolete example
-labels or controls in these raster exports.
+The operator-approved schedule location is now the owning service's Backup
+card. Its checkbox, interval and remote-run action are functional controls,
+not deprecated placeholders. Central storage retains identity, quota, access
+and observation responsibilities but no competing schedule authoring surface.
 
 #### [example settings main](<./src/example settings main.png>)
 
@@ -2408,58 +2526,218 @@ labels or controls in these raster exports.
 - Settings sections carrying a four-dot handle are reorderable and persist their
   new order; ordinals recompute after drop.
 
-#### [example settings backup](<./src/example settings backup.png>)
+#### 10.5.1 Shared Settings Card Ledger
 
-- Source size: `1610x400px`; canonical full-width titled settings card.
-- Header is approximately `55px`; body begins with approximately `39-40px`
-  horizontal and `30px` vertical padding.
-- First group describes logical snapshot contents and exclusions, then presents
-  an approximately `326x40px` `Create and download snapshot` action.
-- Second group is Restore snapshot, despite the duplicated `System snapshot`
-  wording visible in the draft PNG. Its action opens the restore overlay and
-  native picker; it does not accept drag/drop outside the documented import
-  target.
-- Groups use heading, explanation and action order with enough vertical spacing
-  to avoid interpreting the second button as part of the first description.
-- Pending archive creation and restore validation preserve button geometry and
-  expose final success/error notices.
+| Element | Required desktop value |
+| --- | --- |
+| Outer card | Full available `4x` width; `1610px` at the reference shell width; content-driven height |
+| Background / corners | `#000000`; radius `0`; no gradient or decorative shadow |
+| Borders / divider | `1px`; white for a standalone top-level card, `#CCCCCC` for nested borders; never compound opacity |
+| Header | `55px` including divider; ordinal at local `x=14px`, title at `x=39px` |
+| Ordinal | `14px/22px` Consolas Regular, secondary white; recomputed after reorder |
+| Card title | `24px/29px` Consolas Bold, configured accent (baseline `#00A8FF`) |
+| Group heading | `20px/24px` Consolas Bold, primary `#FFFFFF` |
+| Body / labels / controls | `14px/22px` Consolas Regular; Bold only for emphasis/important values |
+| Secondary copy | `--white-80`, rendered `#CCCCCC`; never opacity applied to the complete card |
+| Body insets | Reference `39px` left and about `33px` right; approximately `27–30px` from header divider to first heading |
+| Text/action rhythm | `8px` heading-to-copy gap, `20px` copy-to-action gap; `38–48px` between semantic groups |
+| Ordinary action | `326x40px`, black fill, nested border, `18px` inline padding; longer labels grow/wrap without truncation |
+| Status row | Full content width, `40px` minimum height, `16px` inline padding, `12px` text-to-indicator gap |
+| Status indicator | `18x18px` square; `#62FF8C` healthy, `#F83D3D` failed, neutral secondary white for unknown/stale |
+| Paired status rows | `12px` vertical gap |
+| Checkbox | `20x20px` visual square with `1px` nested border; at least `40px` labeled target, `44px` on a coarse pointer |
+| Numeric interval input | `80x40px`, `8px` inline padding, centered `14px` monospace digits; visible label |
+| Reorder handle | Four approximately `3px` dots in a `2x2` grid, `3px` gap; visual group about `9x9px`, inset `8–12px` from upper right |
 
-#### [example settings updates](<./src/example settings updates.png>)
+The entire reorder target is at least `40x40px` (touch `44x44px`); its
+invisible hit region must not intercept a neighboring action. Dots use the
+shared decorative-dot token at rest and white on interaction. Dragging and
+keyboard reorder follow section 3.2 and persist only card order.
 
-- Source size: `1610x396px`; full-width titled section with black fill and the
-  correct current nesting outline.
-- Body uses approximately `39-40px` horizontal padding. `Update pipeline` and
-  its description appear first, followed by installed version with the version
-  value in accent.
-- Two full-width approximately `40px` status rows show the local update helper and
-  approved release registry independently. Each places the component
-  label at left and textual reachability plus square at right.
-- Healthy status is `#62FF8C`; failed status is `#F83D3D`; a mixed state remains
-  mixed rather than collapsing into one generic indicator.
-- `Check for updates` is an approximately `326x40px` action below the statuses.
-  It opens the discovery overlay. Apply appears only inside that overlay after
-  a newer release passes provenance and compatibility checks.
+Source raster heights are fixtures for the pictured content, not fixed-height
+containers. Initialize, pending state, a second backup pipeline, error details
+and long labels expand the card. Approximate `52px` headers and `39px`
+rows in cropped exports normalize to the shared `55px`/`40px` tokens.
+The compact `57x28px` interval field pictured below normalizes to the
+accessible `80x40px` control; its adjacent command may stretch with the group.
+These are explicit corrections, not unexplained layout drift.
 
-#### [example settings logs](<./src/example settings logs.png>)
+Use the shared hover/focus rules: `#111111` fill, accent border/focus outline,
+`160ms` transition and `60ms` press feedback. Pending controls preserve
+their size with `0.45` opacity and a reason/progressive label. Reduced motion
+removes transforms/animation but preserves all state distinctions. A dim green
+pixel in a capture is not a new status token. Reachability never means that
+enrollment, functional binding or the latest backup also succeeded.
 
-- Source size: `1610x399px`; full-width titled Logs section.
-- The short description aligns left below the header. `Download archived logs`
-  aligns right on the same command band where width permits and wraps below the
-  description before overlap.
-- The stream table uses a `1px` 80%-white outline and header divider. Desktop
-  columns are TYPE, BODY and TIME; BODY receives all flexible width.
-- Data rows have no horizontal dividers; their exact vertical rhythm is a
-  `25px` row-origin step.
-- Information/success type text is `#62FF8C`; error/denied type text is
-  `#F83D3D`. The body remains primary/secondary white, and local timestamp is
-  right aligned without forcing BODY under it.
-- The viewport is bounded, normally no more than `460px` high. New records
-  append in order; retention and pagination prevent DOM growth from mirroring
-  the entire server history.
-- On narrow width, TIME then other secondary metadata move below BODY with
-  labels. TYPE and the human-readable outcome remain visible.
-- Download creates a timestamped ZIP, keeps Settings open and reports pending,
-  completion or failure without interrupting the live stream.
+Below `1000px`, command bands wrap before collisions. At `720px` and below,
+use `20px` body insets; at `420px` use `16px`. Buttons fill their available
+track, paired fields/actions stack in reading order, status text wraps before
+the indicator, and headers reserve the handle's hit area. Keep `14px` body
+text, visible focus and no page-level horizontal scroll at 200% zoom.
+
+#### 10.5.2 Logs Card
+
+![Logs card with recording preference, live events and archive download](./src/example-logs.png)
+
+Source canvas: `1614x728px`. The outer card is `1594x713px` at crop
+`(11,6)`; its narrower width is a capture of a fluid card, not a second size
+token. The table is `1516x460px` at `(50,165)`, its header divider at
+`y=201px`. The `207x40px` download action begins at `(1359,88)`;
+`Load older events` is approximately `169x40px` at `(50,641)`.
+The checkbox's visible `20px` square starts at `(54,122)`.
+
+The command band places the description and recorder preference on the left,
+with archive download on the right. The table follows with `16px` separation;
+older-page loading is `16px` below it. Keep its viewport bounded to
+`460px` with internal vertical scrolling; the header remains visible.
+Use columns TYPE, BODY and TIME: `68px minmax(0, 1fr) 166px` inside
+`16px` inline table insets at desktop, with a `36px` header and `25px`
+minimum row step. Multi-line outcomes grow only that row. A long type such as
+`NOT-MODIFIED` may wrap at its semantic separator; it cannot overlap BODY.
+TIME is right-aligned in `dd.mm.yyyy hh:mm:ss`; BODY receives flexible width.
+Data rows have no horizontal separators. On narrow screens TIME moves below
+the body with a label; outcome remains visible.
+
+The list is newest-first. Incoming events preserve a reader's scroll anchor;
+load-more appends older records and preserves the current position. Stable
+event IDs deduplicate reconnects. Show loading, no events, no older events,
+permission denied and stale/offline distinctly. The recorder checkbox changes
+future routine revision-request logging, not table filtering or mandatory
+security/error auditing. Its preference persists and survives logical restore.
+Download exports retained authorized logs, not just the currently visible page.
+Detailed data/security rules are in
+[Part 02 section 12](./PART_02_OBSERVABILITY_AUDIT_AND_LOG_EXPORT.md#12-web-log-view-and-download-contract).
+The captured white title is not a separate palette: use the configured card
+title accent consistently.
+
+#### 10.5.3 Backup Card
+
+![Backup card with manual recovery and service-owned automatic scheduling](./src/example-backup.png)
+
+Source: `1610x782px`. Manual actions are `326x40px` at `(39,156)`
+and `(39,307)`. The agent status row is approximately `1538x40px` at
+`(39,457)`. The pictured run action is `342x67px` at `(317,520)`;
+its canonical minimum is `342x68px`, stretching alongside the accessible
+two-row schedule-control group. The component update action is `326x40px`
+at `(39,690)`.
+
+Groups appear in this order:
+
+1. `System snapshot`: actual logical scope/exclusions and
+   `Create and download snapshot`.
+2. `Restore snapshot`: description and `Browse local snapshot archive`,
+   opening the restore overlay and native picker. The repeated
+   `System snapshot` heading in the image is a draft wording error.
+3. `Automatic backup to <storage>`: explanation, agent status, contextual
+   Initialize/Repair, schedule enable, interval and `Back up to <storage> now`.
+4. `Neptune version`: actual installed component version and
+   `Check Neptune for updates`.
+
+Initialization is shown when the agent is absent or this service is not
+enrolled. Its completion exposes editable scheduling; an offline agent does
+not masquerade as absent. Healthy reachability, profile completeness, schedule
+saved/applied and last successful remote commitment are distinct observations.
+For several pipelines, repeat a named schedule/status group per pipeline;
+never share one checkbox between a recovery archive and a dedicated mirror.
+
+The checkbox persists enabled state on explicit change. Interval is integer
+hours with `min=1`, `step=1` and the advertised server maximum, if any;
+the default is `24`. Commit valid edits on Enter or blur once, not on every
+digit. Reject blank, zero, negative, fractional and overflow values; never
+silently clamp them. A failed save restores the last confirmed control value
+and retains an inline explanation. Disable duplicate commits while pending.
+
+Automatic backup is initially off for a genuinely new profile; imported
+profiles preserve their actual values. `Back up now` remains an independent
+explicit run when scheduling is off. Enabling or changing interval does not
+secretly invoke it. Show desired/applied policy, next run, last success and
+current job/error near the controls without exposing credentials. Central
+storage no longer owns editable schedule controls. Semantics and handover are
+in [Part 10 section 2](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md#2-backup-and-neptune-panel).
+
+#### 10.5.4 Updates Card
+
+![Updates card with application and update-helper version controls](./src/example-updates.png)
+
+Source: `1610x566px`. Status rows are approximately `1538x40px` at
+`(39,191)` and `(39,243)`; application and helper check actions are
+`326x40px` at `(39,318)` and `(39,470)`.
+
+`Update pipeline` describes release discovery and the local executor.
+Application version appears first, its value in accent. Show update-helper
+and registry reachability as separate rows. The first check action targets the
+application. A distinct `Updater version` group and second check action
+target the shared update helper. Changing one version must not rewrite the
+other. An unavailable observation is not a fabricated version or healthy zero.
+Both actions open the [section 10.8 update overlay](#108-update-dialog-templates),
+which starts discovery; only an application update has the full-ZIP save gate.
+
+#### 10.5.5 Gryphon Connection Before And After Binding
+
+![Gryphon Connection before a service function is linked](./src/exampe-bot_connection-before.png)
+
+Source: `1610x483px`. The status row is approximately `1538x40px` at
+`(39,158)`; link and component-update actions are `326x40px` at
+`(39,230)` and `(39,382)`.
+
+![Gryphon Connection after a service function and user are linked](./src/example-bot_connection-after.png)
+
+Source: `1602x545px`; card `1582x527px` at `(8,10)`. The status row
+is `1504x40px` at `(47,168)`; unlink and component-update actions are
+`326x40px` at `(47,273)` and `(47,458)`. Those controls preserve the
+same `39px` card-local left inset. The greater height accommodates connected
+identity and user-binding status. The teal accent is an example configured
+accent, not a separate hardcoded after-connection theme.
+
+Both cards MUST be titled `Gryphon Connection`, replacing the old title in
+the raster. Group order is gateway/function binding, separate Telegram-user
+binding where relevant, then component version. An absent or unenrolled agent
+offers `Initialize` using section 10.9; a healthy enrolled agent offers
+`Link <service> function`. After linking, show the actual bot's safe
+alias/username and `Unlink <service> function`. Do not show a bot token.
+
+`Telegram account linked` is shown only after a separate verified user
+authorization, not merely after selecting a bot. Use `Link Telegram account`
+for that challenge flow so the service-initialization action is unambiguous.
+Revoking user authorization and unlinking a service function are separate
+consequential confirmations; neither deletes the shared bot or another
+application's binding. The version/check action remains available in its own
+group before and after linking, subject to actual permissions/reachability.
+
+#### 10.5.6 Wyverne Connection
+
+![Wyverne Connection with an active adapter and component update action](./src/example-wyverne.png)
+
+Source: `1610x483px`. Agent status is approximately `1538x40px` at
+`(39,158)`; function linking and version checking are `326x40px` at
+`(39,245)` and `(39,406)`. Preserve the Adapter summary between status
+and the function action and the separate version group.
+
+The title is `Wyverne Connection`; the LLM gateway owns provider connections.
+The raster explanation attributing them to the messaging gateway is a wording
+error and MUST be replaced. Provider/model examples are runtime data, not a
+required default.
+
+An absent or unenrolled gateway exposes `Initialize`. A ready registered
+client can select only an allowed Adapter and link its own function. Show
+actual selected Adapter and function readiness separately from reachability;
+an active gateway alone does not prove a usable model binding. Changing an
+Adapter requires explicit confirmation and validation; failure preserves the
+previous working selection. Consumer Settings must not expose provider keys,
+another client's bindings or a host-admin socket. Component update uses the
+same update overlay without an application ZIP.
+
+#### 10.5.7 Card Acceptance
+
+Compare all six crops and full-shell views at `1919x1034`, `1920x1080`,
+`1000px`, `720px`, `420px`, `360px`, 200% zoom and coarse-pointer
+input. Check header, insets, group rhythm, status squares, button targets and
+before/after expansion against the measured ledgers; allow only documented
+crop and accessible-control corrections.
+Exercise reorder persistence, keyboard activation/focus, long identities,
+multiline log types/errors, live list anchoring, disabled/pending states,
+schedule validation/revision conflicts, empty/partial bindings and all
+initialization outcomes. The functional matrix is in Part 10 and Part 06.
 
 ### 10.6 Context Menu Template
 
@@ -2652,3 +2930,359 @@ raster becomes a reusable product or content requirement.
   behavior; reduced motion; focus visibility; 200% zoom; long labels; long
   code/table content; and the last navigation/article item clearing its bottom
   inset without clipping.
+
+### 10.8 Update Dialog Templates
+
+This is the universal browser update component. Use the same composition,
+controls and state transitions for an application release and a consumed
+shared component. The component name and installed/target versions are data;
+no product name, historical version, host, job ID or repository shown in a
+raster becomes part of this reusable contract.
+
+These six PNGs define the visual baseline together with sections 2, 3.1 and
+3.3. [Part 05 section 34](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md#34-operator-update-ui)
+defines functionality. A screenshot is a composition fixture, not evidence that
+its old status text or every pictured action remains correct.
+
+#### 10.8.1 Palette And Typography
+
+| Role | Required value |
+| --- | --- |
+| Dialog, panels and resting controls | True black `#000000`; no gradient, texture or decorative shadow |
+| Primary text and outer dialog border | `#FFFFFF` |
+| Labels, explanatory text, dividers and all nested outlines | `--white-80`, rendered as `#CCCCCC` on black |
+| Hover/focus fill | `#111111` |
+| Links, focus and active progress | Configured `--accent`, baseline `#00A8FF` |
+| Verified success | `#62FF8C`, always accompanied by outcome text |
+| Failure, consequential confirmation and rollback control | `#F83D3D`, always accompanied by action/outcome text |
+| Backdrop | `rgba(0,0,0,.35)` and `9px` backdrop blur; black fallback where blur is unavailable |
+| All dialog text | Consolas, then the monospace fallbacks from section 2.2; Regular `400` or Bold `700` only |
+| Dialog and warning title | `24px/29px`, Bold, primary white |
+| Discovery heading | `16px/20px`, Bold, primary white |
+| Warning question identifying target/version | `18px/27px`, Regular |
+| Metadata, explanation, links, status and button labels | `14px/22px`; metadata values and machine state Bold, labels Regular |
+| Tracking and corners | `letter-spacing: 0`; `border-radius: 0` |
+
+The cyan link hue sampled in the historical raster is an example accent;
+links MUST use the application's configured accent. Raster title-glyph shapes
+do not override the font-role rules: a dialog title uses the interface font,
+not the display font reserved for service/page names. Raster subpixel fringes
+and outer dark capture matte are not additional palette tokens.
+
+An application with an explicitly approved alternative visual identity maps
+these semantic roles to its documented theme. It retains the same information
+order, target identity, backup gate, action semantics, progress and recovery.
+Theme adaptation is not permission to omit a screen or introduce a second
+update experience. Its theme mapping and visual fixtures belong in its local
+documentation; this universal Part does not enumerate product exceptions.
+
+#### 10.8.2 Geometry And Spacing Ledger
+
+All CSS measurements use border-box. Coordinates below are relative to the
+outer dialog border after removing screenshot crop/matte. Allow `1px` raster
+rounding; do not reproduce differences in crop origin as separate layouts.
+
+| Element | Canonical desktop measurement |
+| --- | --- |
+| Entry button | `326x40px`; centered label, `1px` structural border |
+| Main overlay | `760x702px`; `1px` outer white border; same size for discovery, no-result and job states |
+| Header | `55px` high including lower `1px` nested divider; title inset `20px` inline |
+| Close button | `40x40px`, approximately `12px` from the inner right edge and `7px` from the header top; centered cross |
+| Body | `24px` padding on all sides; content starts at local `x=25px` after the outer border |
+| Metadata grid | `140px minmax(0, 1fr)`, `16px` column gap, `5px` row gap and `22px` line height |
+| Discovery panel | `710px` reference width, `203px` minimum height; local `x=25px, y=191px`; nested `1px` outline |
+| Discovery panel spacing | `36px 18px 18px` padding; heading-to-summary gap `14px`; subsequent text/link groups separated by `12px` |
+| Gap before Discovery | Approximately `36px` after the three-row metadata group; additional real metadata expands normal flow |
+| Discovery action row | `18px` below the panel, aligned right; `12px` between buttons |
+| Check-again / install buttons | `40px` high with `18px` inline padding; example widths about `122px` / `146px`, content-sized for the real version |
+| Job panel | Full `710px` content width, `38px` after the action row, `18px` padding; same metadata grid |
+| Job message | `18px` after the metadata rows; wraps in `14px/22px` text |
+| Required progress track | `6px` high, full available width, `12px` block margins, square ends |
+| Rollback action | Full panel content width, `40px` high, `18px` above it; danger border and text |
+| Warning dialog | `620px` wide, baseline `268px` minimum height; content height grows for save/acknowledgement/error states |
+| Warning header/body | Same `55px` header and `40px` close button; `24px` body padding |
+| Warning content | Question, `12px` gap, explanation, `16px` gap, right-aligned actions; `12px` action gap |
+| Warning buttons | `40px` high, `18px` inline padding; baseline widths about `85px` cancel and `230px` consequential action |
+
+The reference job card is approximately `187px` high before adding the required
+progress track. It MUST grow for that track, its measured-value label, long
+messages and recovery input; the old fixed height is not a clipping boundary.
+The Discovery baseline assumes one summary line, two explanation lines and one
+release-notes link. Additional content grows its panel in normal flow.
+
+The entry-button crop does not fix every Settings card's action width. A
+documented full-width parent-card variant stretches that same `40px` button
+without changing its typography, border, states or behavior.
+
+Use the shared hover/focus/pressed treatment from section 3.1: `160ms`
+hover/focus transitions, a non-layout focus outline and `60ms`
+`scale(.985)` press feedback. Reserve space for the transform so adjacent
+buttons and focus rings do not collide. Disabled/pending controls remain at
+their original size and `0.45` opacity; a nearby explanation names the reason.
+Danger controls retain their danger meaning during interaction.
+
+#### 10.8.3 Composition And Responsive Interaction
+
+The main dialog always reads in this order:
+
+1. `Updates` title, component identity where needed, and Close.
+2. Installed version, local update-helper reachability/version and registry
+   reachability as separate observations. The target component's installed
+   version MUST NOT be replaced by the helper's version.
+3. Bordered `Discovery` panel: result, concise compatibility/provenance
+   explanation, and an approved `Release notes` link when available.
+4. Right-aligned `Check again` and conditional `Install <version>`.
+5. Bordered job panel, only when a job exists for this component: `Job`,
+   `State`, message, progress and any permitted recovery action.
+
+Technical provenance detail belongs in a secondary details area when needed;
+do not fill the primary workflow with internal paths, tokens or commands.
+Long versions/job IDs wrap within the value column without moving the close
+control or creating page-level horizontal scrolling.
+
+The dialog opens centered. Width is `min(760px, calc(100vw - 16px))`;
+height is `min(702px, calc(100dvh - 16px))`, with a `100vh` fallback.
+Keep the header visible and make the body the vertical scroll owner. The
+warning uses `min(620px, calc(100vw - 16px))` and viewport-bounded auto height.
+Do not collapse the main dialog just because there is no update/job.
+
+At `600px` viewport width and below, body padding becomes `16px`, metadata
+uses `120px minmax(0, 1fr)` with a `12px` gap, and action rows wrap before
+collision. At `420px` and below, metadata becomes labeled single-column
+pairs with `4px` label/value and `12px` pair gaps; actions stack at full
+width in the same reading order. Controls remain at least `40px` high and
+expand to `44px` touch targets on coarse-pointer devices. Text wraps and
+controls grow vertically when necessary; font sizes do not shrink to fit.
+
+Only the topmost dialog owns focus. Opening the backup warning makes the
+underlying update dialog inert; cancel returns to discovery with the chosen
+candidate intact. Escape or Close before submission cancels the local flow,
+not an already accepted host operation. Closing a running job view keeps the
+job alive and leaves a visible Settings entry for reopening its progress.
+Backdrop clicks MUST NOT discard a pending save/acknowledgement. Reopen, reload,
+resize and a virtual keyboard must keep the close control reachable and
+recover status without moving keyboard focus on every poll.
+
+#### 10.8.4 Entry Button Reference
+
+![Update discovery entry button](<./src/check_for_updates.png>)
+
+Source: `339x52px`; the actual button is `326x40px` at crop coordinate
+`(5,5)`. The surrounding black area is export padding. Activation opens the
+dialog immediately and starts discovery once. It never installs a release.
+
+#### 10.8.5 Available Release Reference
+
+![Update dialog with an available release](<./src/update - stage 1.png>)
+
+Source: `773x716px`; dialog border begins at `(6,10)` and encloses
+`760x702px`. Preserve the metadata/Discovery/actions hierarchy and the
+unoccupied lower region before a job exists. `Check again` performs a new
+check; `Install <version>` identifies the exact selected candidate and opens
+the warning for an application update. Example identities and versions are
+replaced by actual data.
+
+#### 10.8.6 Backup Warning Reference
+
+![Mandatory saved-backup warning before an application update](<./src/update - backup warning.png>)
+
+Source: `627x275px`; dialog is `620x268px` at `(4,4)`. Preserve the
+prominent target/version question, explanation, neutral Cancel and consequential
+action. Use `Install <application> update` as a generic title pattern;
+capitalization follows the actual display name.
+
+`Create backup and install` is explicit consent to the named target and a
+gated sequence, not permission to install before saving. With a verified native
+save API, continue only after the write and close succeed. With an ordinary
+browser download, replace the combined action with a separate initially
+unchecked saved-copy acknowledgement and `Install <version>`, disabled until
+acknowledged. Download initiation alone never unblocks installation.
+The native save picker remains native. Show `Creating backup...`,
+`Saving backup...`, `Backup saved` or the actual failure as appropriate;
+generation, save, expiry and validation errors are retryable without pretending
+that the gate passed. These states expand the warning in normal flow and never
+squeeze its text into the baseline height.
+
+#### 10.8.7 Running Job Reference
+
+![Update dialog with a running job and recovery area](<./src/update - stage 2.png>)
+
+Source: `773x716px`; main border starts at `(5,6)`. The legacy job panel
+starts at `(30,496)`, spans `710x187px` and contains a full-width
+`672x40px` recovery button at `(49,624)`.
+
+Required corrections to this historical capture:
+
+- Replace its server-backup-storage message with actual job state and the
+  saved-copy recovery explanation from Part 05.
+- Add the progress track between the message and recovery action. Use measured
+  progress only when a valid total is available; otherwise show an
+  indeterminate track and the current phase in text.
+- Disable check/install mutations during the accepted operation; retain target
+  information. A second click cannot start another update.
+- Show or enable rollback only when the authoritative job allows it and the
+  current operation has reached a safe terminal/recovery boundary. The pictured
+  enabled button is not permission to interrupt arbitrary apply work.
+
+An indeterminate track uses accent and no fabricated numeric percentage.
+The remaining track uses `--white-80`; determinate fill uses accent, the bounded
+measured ratio and a visible unit/total.
+Reduced motion stops travel animation while retaining the track and explicit
+pending text. The progress element has an accessible name and omits
+`aria-valuenow` when the total is unknown. State changes use a polite live
+region; actionable errors are announced once without reading every poll aloud.
+
+#### 10.8.8 Completed Job And Recheck Reference
+
+![Update dialog after a completed installation and fresh version check](<./src/update - stage 3.png>)
+
+Source: `773x716px`; dialog starts at `(7,9)`. Discovery is
+`710x203px` at `(32,200)`; the historical job panel begins at `(32,499)`.
+The installed row shows the verified running version, the completed job remains
+inspectable, and a fresh check determines whether another candidate exists.
+`No newer compatible release` is shown only if that check succeeds with no
+candidate. A newer intervening release may produce another install offer.
+
+Keep completion and discovery outcomes separate. A failed recheck does not
+turn the completed installation into a failed job. A failed or rolled-back job
+never receives green success treatment just because its progress mode is
+`complete` or its numeric ratio is `1/1`. A retained rollback action requires
+the original saved ZIP and the current server authorization.
+
+#### 10.8.9 Initially Up-To-Date Reference
+
+![Update dialog when the initial check finds no newer compatible release](<./src/update - no updates.png>)
+
+Source: `773x716px`; uses the same `760x702px` dialog and Discovery
+geometry as the completed/recheck reference. Only `Check again` remains in
+the action row. If no job exists, omit the entire job/progress/rollback card;
+do not fabricate a completed operation or show an empty bordered placeholder.
+An offline, unauthorized, incompatible or failed check is a separate outcome,
+never this no-update state.
+
+#### 10.8.10 Visual And Interaction Acceptance
+
+Capture all six reference states, plus checking, cancelled/failed save,
+acknowledgement required, expired receipt, determinate/indeterminate progress,
+reconnecting, rejected install, rollback success and rollback failure.
+Compare at `1919x1034` and `1920x1080`, then `600px`, `420px`,
+`360px`, a short `640x360` viewport, 200% zoom and a coarse pointer.
+
+At desktop, compare both the full shell and a crop aligned to the dialog
+border. Assert the ledger's geometry within `1px` rather than matching export
+matte or subpixel font colors. Mask only variable data and explicitly identified
+historical deltas, not incorrect padding, fonts, controls or missing progress.
+Exercise keyboard focus/return, Escape, native picker cancellation, reduced
+motion, long names/versions/errors and reopening an active job. Repeat the
+component-update states without the backup step and with every approved theme.
+The functional gate is
+[Part 06 section 39.1](./PART_06_UNIFIED_ACCEPTANCE_CHECKLIST.md#391-universal-update-workflow-acceptance).
+
+### 10.9 Service Initialization Overlays
+
+The `Initialize` actions in Gryphon Connection, the automatic-backup group
+and Wyverne Connection use one overlay family. This is a specification for
+states absent from the six card PNGs; its visual basis is the update warning
+and running-job panels in section 10.8. It does not introduce another theme.
+Component-specific fields and postconditions are defined in
+[Part 10 section 8](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md#8-initialize-overlay-workflow).
+
+#### 10.9.1 Geometry And Field Layout
+
+| Element | Required value |
+| --- | --- |
+| Form dialog | `620px` desktop width, `268px` minimum height, auto content height |
+| Viewport bound | Width `min(620px, calc(100vw - 16px))`; max-height `calc(100dvh - 16px)` with `100vh` fallback |
+| Header | `55px` including `1px` divider; title `20px` from left |
+| Title | `Initialize <component>`, `24px/29px` Consolas Bold, primary white |
+| Close | `40x40px`, approximately `12px` right and `7px` top inset; accessible `Close initialization` name |
+| Body | `24px` padding; `20px` between semantic form groups |
+| Labels | `14px/22px` Consolas Bold; `8px` before their control |
+| Input/select | Full content width, `40px` minimum height, `12px` inline padding, `14px/22px` Consolas Regular |
+| Help/error | `14px/22px`, `8px` after the control; secondary white/help or danger/error |
+| Footer | `24px` above actions, right-aligned, `12px` gap; neutral Cancel then Initialize |
+| Action | `40px` minimum height, `18px` inline padding, content width; at least `112px` for Initialize |
+| Status panel | `1px` nested outline, `18px` padding, `24px` separation from form/context |
+| Status metadata | `140px minmax(0,1fr)`, `16px` column gap, `5px` row gap |
+| Progress | Same `6px` track, `12px` block margins and measured/indeterminate rules as updates |
+
+Use true black, white, nested `#CCCCCC`, configured accent, `#62FF8C`
+success and `#F83D3D` danger. Borders are `1px`, corners square.
+Initialize is a normal outlined action, not a red destructive button; unlink,
+revocation and destructive repair use danger with consequence text.
+Hover/focus/pending, reduced motion and approved theme mappings are inherited
+from sections 3.1 and 10.8, including `0.45` disabled-control opacity.
+
+Header remains visible; the body is the scroll owner for long forms, jobs and
+errors. At `600px` and below use `16px` body padding. At `420px` and below
+stack footer actions at full width and metadata as labeled pairs. Coarse
+pointers receive `44px` targets. Never shrink text or hide a required action
+to fit the baseline height.
+
+#### 10.9.2 Open, Input And Validation
+
+Clicking Initialize opens and centers the dialog and performs only read-only
+preflight. Show component, owning service, install/reuse intent and any shared
+impact. Opening, selecting a field, pressing Escape or closing before explicit
+submission must not install, enroll, bind, save a secret or enable scheduling.
+
+Use the smallest fields needed for the scoped operation. Non-secret service
+identity/profile is resolved server-side and displayed read-only. A backup
+setup code is an empty masked input; the protocol's length/expiry applies to
+that code only, not to the application's Access Key. Other component forms
+must not display a fake setup-code field merely to match its geometry.
+
+Sensitive values start empty, are never prefilled from a read API, and are
+excluded from URLs, browser persistence, diagnostics and analytics. Use
+`autocomplete="off"`, disable spellcheck and autocapitalization for opaque
+codes, and treat paste as input data. A keyboard-operable temporary reveal
+control may be used without changing field width. The clear action follows
+the shared input contract. Provider and bot tokens do not belong in ordinary
+consumer initialization forms.
+
+Required/invalid fields show an inline explanation associated with the control.
+Focus the first invalid field after submission; do not expose a raw transport
+body. Missing permission, unavailable installer, expired code, incompatible
+agent, profile mismatch and no allowed Adapter are distinct conditions.
+Disable only affected actions and preserve non-secret input on a retry.
+
+#### 10.9.3 Submit, Progress And Result
+
+Explicit Initialize validates the selected scope and submits one typed action
+with a stable request ID. Prevent double clicks and Enter/submit duplication.
+Accepted work changes the form to observation: lock configuration fields,
+replace Cancel with Close, keep the target context and show Job, State,
+message and progress in the update-style panel. Do not fabricate a job before
+the server accepts it; show `Submitting...` while acknowledgement is pending.
+
+Install, reuse, enrollment and verification are separate observable phases.
+Display backend-reported state, mapping it to explanatory UI text where useful;
+phase ordinals are not measured percentages. Successful submission or socket
+reachability alone is not initialization success.
+
+Closing the active dialog does not cancel the host job. Keep a visible
+`Initialization in progress`/`View progress` entry in the originating
+card. Reopen/reload/authenticated reconnect finds the same request/job;
+an uncertain acknowledgement is resolved before any retry. Do not restore
+secret fields from persistence. Cancelled preflight/save, terminal outcomes
+and teardown clear transient sensitive input.
+
+On verified completion, refresh the card's component health, service
+registration and expected functional/profile state. Show a stable success
+result with an explicit Done/Close action rather than auto-dismissing it.
+For backup initialization this unlocks schedule editing; it does not enable
+automatic backup or run a backup by itself. For a gateway it enables the
+next separately authorized binding step.
+
+On failure, keep the dialog open with the stage, sanitized cause and a safe
+retry or repair action. If the shared agent was installed but enrollment
+failed, show that partial state and reuse the installation on retry; never
+delete another consumer's configuration. Repair declares the intended profile
+and affected scope before confirmation. A terminal result does not require the
+browser to remain open for execution.
+
+Only the topmost dialog traps focus. On close, return focus to its actual
+invoker (or the corresponding card action if the card was re-rendered).
+Backdrop clicks cannot discard a populated sensitive form or pretend to
+cancel an accepted operation. Keyboard, screen-reader announcements, stale
+state, reduced motion and error recovery follow the update-dialog contract.

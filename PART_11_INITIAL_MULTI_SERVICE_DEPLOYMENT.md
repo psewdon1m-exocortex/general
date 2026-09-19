@@ -143,7 +143,13 @@ restart. Running head containers reconnect to restored credential mounts. A new
 Windows identity must re-enroll credentials protected by the previous machine's
 DPAPI; its source folders remain operator-owned and must exist on the new device.
 
-Saturn owns archive and mirror schedules independently. Remote commands expire
+Each owning service's Backup card controls its archive and mirror schedules
+independently. Central storage may persist/relay those scoped policies and
+observe their application but no longer exposes a competing schedule editor
+or service backup-run button. Migrate existing enabled states, intervals,
+revisions and active work through the single-writer handover in
+[Part 09 section 5](./PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md#5-ongoing-neptune-interaction).
+Remote commands expire
 after seven days. Neptune/Gryphon retain bounded journal/deduplication history,
 clear completed payloads and apply backpressure at capacity. A queued command or
 accepted installation is not a successful terminal outcome.

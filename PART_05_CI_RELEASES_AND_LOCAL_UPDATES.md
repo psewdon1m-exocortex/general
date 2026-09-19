@@ -24,8 +24,9 @@ Keep these roles separate:
   embeds only that public part in the service's release `bootstrap.sh`.
 - A control-plane registry distributes repository locations and compatibility
   policy.
-- The application exposes the operator workflow, creates a logical backup and
-  submits only a desired version to the local updater.
+- The application exposes the operator workflow, creates its standard full
+  logical backup and submits a scoped target version, request ID, saved-copy
+  receipt and exact archive bytes to the local update helper.
 - The privileged updater independently resolves and verifies that version,
   owns the container-engine boundary and mutates only services registered on
   its host.
@@ -260,13 +261,15 @@ The operator's update check is informative. The privileged updater resolves
 the release independently and does not trust the UI response.
 
 1. The application authenticates to the control-plane configuration registry.
-2. Its local Updater validates Register schema, revision and checksum. Only
+2. Its local update helper validates registry schema, revision and checksum. Only
    non-secret reference metadata may enter a last-known-good copy.
-3. Updater reads the repository location from a namespaced registry entry.
-4. Updater queries the hosted release API; the application displays its
+3. The helper reads the repository location from a namespaced registry entry.
+4. The helper queries the hosted release API; the application displays its
    installed/available version result.
-5. On installation, it sends a request ID, local service identity, selected
-   version and checksummed backup to the updater.
+5. On application installation, it sends a request ID, local service identity,
+   selected version, saved-copy receipt and checksummed backup to the helper.
+   A typed shared-component update uses its own authorized scope without an
+   application backup.
 6. The updater reloads its root-owned local profile and the validated registry
    snapshot, obtains the repository location itself and queries releases again.
 7. It selects an exact non-draft, non-prerelease semantic version and binds manifest identity
@@ -318,25 +321,29 @@ stopped and uncreated services untouched.
 
 ## 29. Update State Machine And Apply Algorithm
 
-An update request is accepted only when a non-empty backup within the defined
+An application update request is accepted only when a non-empty backup within the defined
 limit matches its SHA-256. The implemented privileged boundary uses a 128 MiB
 decoded-byte maximum. The head signs a short-lived receipt binding the exact
 standard ZIP to its head ID, service, target version, request ID, size and SHA-256.
 The browser saves the ZIP and returns the same bytes with explicit saved-copy
-acknowledgement. Updater verifies the receipt and checksum before mutation.
+acknowledgement. The update helper verifies the receipt and checksum before mutation.
 Only job metadata is persisted; backup bytes remain in memory for the operation.
 Reusing the request ID with the same scope returns the existing job.
+Reusing it with a different target or payload is rejected, not interpreted as
+a second operation. Typed shared-component requests follow the same
+authorization, exact-target, idempotency, health and job rules without an
+application ZIP or saved-copy receipt.
 
 | State | Meaning |
 | --- | --- |
-| `REQUESTED` | Request and backup are accepted; only job metadata is persisted |
-| `BACKUP_VERIFIED` | Backup bytes exist and match the supplied digest |
+| `REQUESTED` | Scoped request and, for an application, saved backup are accepted; only job metadata is persisted |
+| `BACKUP_VERIFIED` | Application backup bytes are available in memory and match the scoped receipt and digest |
 | `ARTIFACT_VERIFIED` | Tag, manifest, bundle, image and updater compatibility passed |
 | `PULLING` | Exact immutable image is being downloaded |
 | `APPLYING` | Version and image lock are written atomically and target is replaced |
 | `HEALTH_CHECK` | Loopback and optional public endpoints are polled |
-| `COMPLETED` | Installed version and digest are persisted in the job |
-| `FAILED` | Failure occurred before rollback was possible |
+| `COMPLETED` | Target running version/digest and health are verified and the outcome is persisted |
+| `FAILED` | Rejection, failure or interruption without a verified recovery outcome; the mutation marker and message determine recovery needs |
 | `ROLLING_BACK` | Previous version and optional logical data are being restored |
 | `ROLLED_BACK` | Recovery completed and health passed |
 | `ROLLBACK_FAILED` | Previous runtime or data could not be restored fully |
@@ -361,11 +368,12 @@ The updater applies a release as follows:
    If a signed manifest declares a compatible offline recovery tool, use that
    exact candidate image by digest before restarting the old deployment.
 
-Legacy Volt/Saturn releases below 0.2.0 may omit a health version. Only in that
-case may Updater verify the actual running container image and image ID against
-the pinned immutable digest. A wrong reported version, mutable tag or stopped
-container is never accepted through this compatibility path. New releases must
-report their running application version.
+A legacy release that omits a health version may use an explicitly documented,
+tested compatibility profile. Only for that bounded profile may the helper
+verify the actual running container image and image ID against the pinned
+immutable digest. A wrong reported version, mutable tag or stopped container
+is never accepted through this path. New releases MUST report their running
+application version; exact legacy ranges belong in the application's runbook.
 
 Release resolution, compatibility or pull failure leaves the running service
 untouched.
@@ -384,9 +392,10 @@ explicitly confirmed that the initiated ZIP download is saved. Download initiati
 alone MUST NOT be represented as proof of a disk save.
 
 Update archives MUST NOT be retained on the application host. Their durable homes
-are the user's computer and Saturn via Neptune's independent automatic pipeline.
+are the user's computer and the designated remote backup storage through the
+shared backup agent's independent automatic pipeline.
 Temporary generation files are deleted after transfer and cleaned after interrupted
-downloads at startup. Updater holds rollback bytes only in process memory, clearing
+downloads at startup. The update helper holds rollback bytes only in process memory, clearing
 them at termination of the operation. Restore tools needing a path receive a
 restricted, verified tmpfs file, removed in a finally/defer cleanup; no /tmp fallback.
 
@@ -396,6 +405,14 @@ recovery condition. Compose metadata is retained; secret-bearing .env copies and
 ZIP content are excluded. Terminal job metadata retention is bounded (20 jobs,
 30 days by default). Legacy archive directories are migrated and cleaned at startup;
 metadata preserves the original checksum for operator-copy recovery.
+
+Before an upgrade that performs this legacy cleanup, the operator MUST have
+saved fresh standard backups on their computer. Its runbook identifies the
+cleanup and any historical copies needed for older recovery points. A terminal
+job marked `rollback_available` after cleanup is not evidence that the archive
+still exists on the host. Recovery uses its recorded digest and the operator's
+matching copy. This policy concerns backup material, not installed binaries,
+persistent application volumes or required deployment metadata.
 
 An ordinary host reboot preserves installed applications and their persistent
 databases/settings. It does not require restoring every service from backups.
@@ -465,7 +482,9 @@ failure or validation failure keeps the last-known-good or factory artifact.
 - build provenance is produced, and OCI builds request SBOM/provenance;
 - runtime containers use least privilege and loopback-only publishing where
   possible;
-- update success requires backup, health checks, persisted state and rollback.
+- application update success requires a verified saved-copy backup, health
+  checks and a persisted outcome with a tested recovery path; shared-component
+  updates require the same release/health verification without an application ZIP.
 
 ### 33.2 Boundaries That Must Stay Visible
 
@@ -498,81 +517,275 @@ verification, or a smoke test complete rollback validation.
 
 ## 34. Operator Update UI
 
-The permanent Settings Updates section shows the installed version and separate
-reachability for the local updater and approved release registry. The visual
-contract is defined by Part 01 section 5.5 and its linked
-`example settings updates` template.
+This contract applies to every current and future application and every
+consumed shared component. It does not define a fixed product list. The
+permanent Settings card follows
+[Part 01 section 5.5](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#55-settings-information-architecture).
+The six embedded examples, colors, fonts, dimensions, responsive rules and
+historical-image corrections are authoritative in
+[Part 01 section 10.8](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#108-update-dialog-templates).
 
-`Check for updates` opens a custom overlay and performs discovery there. The
-overlay shows:
+### 34.1 Target And Entry Points
 
-- installed and available versions;
-- repository policy source and last-known-good/offline status;
-- local updater availability and busy state;
-- selected tag, publication time and release notes;
-- backup freshness, checksum and operator-copy status;
-- job ID, exact machine state and message;
-- rollback availability and final rollback result.
+The application Updates card shows its installed version, local update-helper
+reachability and approved registry/release-policy reachability independently.
+Each consumed shared component has its own Settings card or clearly named
+group with its installed version, health and `Check for updates` control.
+An unused component does not receive a misleading installed/healthy card.
+The chosen component remains visible throughout discovery, confirmation and
+job observation; an application version and a helper version are never
+interchanged.
 
-Release checking may be operator-triggered. Discovery can work without the
-local updater, but installation is disabled with a clear explanation.
+If updates belong exclusively to an external package manager or administrator,
+name that mechanism and the last verified version. Explain why local Install
+is unavailable instead of simulating this workflow.
 
-The overlay has two explicit phases:
+### 34.2 Discovery And Exact Selection
 
-1. **Discover and verify:** resolve only the approved source and verify release
-   identity, signature/digest, compatibility and confirmation state. Show
-   checking, up-to-date, offline/last-known-good and verification-failed as
-   distinct outcomes.
-2. **Initiate:** only when a newer confirmed release exists, show its verified
-   details and an explicit update button in the same overlay. Discovery alone
-   MUST NOT start installation, and the web client still cannot supply an
-   arbitrary version source, URL, image or command to the updater.
+1. `Check for updates` opens the custom overlay immediately, displays
+   `Checking...` and starts one fresh discovery request for the chosen target.
+2. Show installed version, target identity, helper availability, registry
+   status and the time of the last successful observation. An unknown installed
+   version is not `0.0.0` and cannot authorize an upgrade.
+3. Resolve the approved release source through the authenticated control plane.
+   Compare semantic versions numerically; exclude draft, prerelease, wrong
+   namespace and incompatible candidates according to the declared channel.
+   A normal update rejects downgrade and same-version replacement.
+4. Display a candidate only after release identity and the applicable
+   compatibility checks succeed. Name exactly which checks have completed.
+   Release discovery does not prove that artifact bytes/signatures have been
+   verified unless that verification actually ran. The privileged helper
+   independently verifies the signed manifest, artifact digests and exact
+   target again before mutation.
+5. With a newer compatible candidate, show `Install <version>` and approved
+   release notes. Without one, show `No newer compatible release was found`
+   and `Check again`, with no install offer or fabricated job.
+6. `Check again` performs another real check. While it is pending, disable
+   duplicate checks and install, retain last-known information as stale, and
+   show pending feedback. Ignore out-of-order responses for an older target or
+   request. An error, missing credentials, offline source, busy helper or
+   unsupported protocol is not a successful no-update result.
 
-The UI polls persisted job state. Temporary connection loss while the container
-is replaced is not proof of failure. It MUST distinguish:
+A newer incompatible release is identified as blocked with its reason; it
+cannot appear as an installable candidate. Last-known-good information may
+remain visible with its age/provenance, but cannot stand in for the helper's
+required fresh verification. Discovery may be available without the local
+helper only when the application has an approved independent read path; Install
+remains disabled with a named prerequisite.
 
-- rejection before mutation;
-- new version failure followed by successful restoration;
-- rollback failure requiring manual recovery.
+Release-note and other generated links use the current approved coordinates
+obtained through the control plane. Do not hardcode deployment addresses or
+accept an arbitrary destination from browser input.
 
-`ROLLED_BACK` is not generic success, and `ROLLBACK_FAILED` is never hidden
-behind the original update error.
+### 34.3 Mandatory Application Backup Gate
 
-Shared-agent checks use separately labeled component controls in the Backup,
-messaging connection or central synchronization surfaces defined by the
-[service-agent UI guide](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md). Their
-jobs use the same rule: request acceptance is pending, and the UI polls through
-reconnect until a terminal state and refreshed component health are available.
+`Install <version>` opens the warning for an application release; it does
+not yet submit a privileged update. The warning names the application and
+exact target, explains replacement and possible recovery, and states that
+the full ZIP must be saved on the operator's computer.
 
-## 35. Unified Update Dialog (protocol 2, 2026-09-17)
+The required sequence is:
 
-The normative visual references are src/check_for_updates.png, src/update - stage 1.png,
-src/update - backup warning.png, src/update - stage 2.png, src/update - stage 3.png and
-src/update - no updates.png. The stage-2 legacy text about a stored server backup is
-superseded by section 30. All five heads share the same flow; Laboratory adapts its
-colors and typography to its own theme.
+1. `Create backup and install` explicitly authorizes the named target after
+   the save gate. It creates a fresh standard full ZIP through the same
+   application-owned builder used by manual and automatic backups. Export is
+   authorized, bounded and internally consistent. Only one creation is pending
+   for this confirmation.
+2. The browser saves those bytes. Invoke the native save picker from a trusted
+   user action where supported, await the write and successful close, then show
+   `Backup saved` and continue the already explicitly authorized installation.
+   Picker cancellation, denied permission, failed generation or failed writing
+   leaves installation blocked and offers a retry.
+3. Where verified file saving is unavailable, initiate the normal browser
+   download and present a separate, initially unchecked acknowledgement:
+   `I saved <filename> on my computer`. The interface cannot detect an
+   ordinary download's completion and MUST NOT claim otherwise. Starting a
+   request, creating an object URL or clicking a download link is not proof.
+4. In that fallback, only explicit saved-copy acknowledgement enables the
+   separate `Install <version>` action; its activation submits the update.
+   A successful verified save may continue the combined action from step 1
+   without an unnecessary extra confirmation. Both paths must bind to the
+   original explicit target/intent and show filename, size and save outcome
+   without exposing archive content. A cancelled/closed preparation never
+   continues automatically.
+5. The application authenticates a short-lived receipt that binds profile,
+   component, selected version, request ID, exact ZIP size and SHA-256. The
+   helper verifies scope, expiry, acknowledgement and byte equality before
+   mutation. The receipt contains no signing secret; its key stays server-side.
 
-Check for updates opens the overlay and starts discovery. Check again repeats it.
-Install X.Y.Z opens the mandatory ZIP warning for a head. Helper updates (Updater,
-Neptune and consumed Gryphon) use the same overlay without the ZIP step. No component
-may silently install a different version from the selected candidate. Stable selection
-sorts numeric SemVer, excludes draft/prerelease/unqualified tags and rejects downgrade.
+The browser returns the same saved ZIP bytes; the application MUST NOT create
+a replacement snapshot at submission. An automatic remote backup alone does
+not satisfy this operator-save gate. Changing target/profile, expired receipt,
+mismatched bytes or loss of the pending browser state invalidates the gate and
+requires a fresh authorized preparation; it never silently unblocks Install.
+Receipt lifetime is bounded (reference default: 15 minutes) and communicated
+when expiry affects the action.
 
-The panel shows a durable job ID, actual state and error, and a progress bar. If a
-phase has no measured total, the bar is indeterminate; fabricated percentages are
-forbidden. Polling recovers after a head restart and browser reload. Completion is
-followed by fresh discovery. Remote Saturn Neptune jobs report waiting until the
-agent both completes the command and reports the selected running version; remote
-check-in latency must not be presented as instantaneous progress.
+Before submission, Cancel/Close returns to discovery without changing the
+installed service. After acceptance, closing a dialog or browser does not
+cancel the host job. Keep ZIP bytes and bearer receipts out of URLs, logs,
+browser persistent stores and service-worker caches; only non-secret
+request/job references may survive reload.
 
-First migration: publish the signed Updater 0.5.0 release before building heads pinned
-to it. Download a standard backup from each old head before maintenance. Upgrade
-Updater through `updater update --head <id>` using the existing trust pin. Stream the
-saved operator ZIP to `updater migrate-head --head <id> --version <exact-version>
---saved-backup-stdin --confirm-saved` as root. This command reads only memory and
-submits the standard authenticated protocol-2 request; the daemon still verifies
-the receipt, signed release and digest and preserves the existing .env and data.
-Do not rerun a first-install bootstrap over an existing head or use the old direct
-apply route. Follow the returned job to verified completion. Subsequent releases
-use the unified overlay. No private signing keys, manual scp or trust fingerprint
-setup is added.
+The complete archive lifetime, size and recovery rules are in
+[Part 03 section 13.2](./PART_03_BACKUP_AND_RECOVERY.md#132-backup-lifetime-during-an-application-update)
+and section 30 of this Part.
+
+### 34.4 Submission, Live State And Reconnection
+
+Submit the exact selected version with a stable request ID and retain that ID
+before sending. The response is an acknowledgement containing the durable job
+ID, never an assertion of successful installation. Disable duplicate install,
+backup creation and competing check/target changes while the job is active.
+The host mutation lock remains authoritative across tabs and connected clients.
+
+The job panel exposes target, job ID, current machine state, sanitized message,
+actual progress and permitted recovery controls. Its data comes from
+authenticated persisted job state, not a browser timer or optimistic steps.
+Observe through authenticated push or bounded polling; the reference visible
+poll cadence is 1–2 seconds. Poll failures back off to a bounded interval
+(reference maximum: 30 seconds) and show `Reconnecting...`, the last known
+state and last successful observation time. Resume promptly on regained
+connectivity/visibility. A product may document another measured cadence without
+weakening truthful state or durable execution.
+
+Closing, navigating, reloading or losing the connection MUST NOT lose an
+accepted operation. Reopen it by its retained request/job identity and verify
+the component scope. If a submission response was lost, look up that request
+before considering a retry; do not generate a new request ID automatically.
+An expired application session requires sign-in and then authenticated status
+recovery, not anonymous access to private jobs.
+
+A restart-related HTTP error is not by itself an update failure. Keep stale
+state visible rather than inventing progress or completion. For a remotely
+managed component, command acceptance, waiting for agent check-in and verified
+completion are distinct states. Only a reported target running version and
+health complete the operation; queued/offline time is not download progress.
+
+| Progress observation | Presentation |
+| --- | --- |
+| Current phase, no measured total | Indeterminate track with named phase; no numeric percentage |
+| Valid measured completed/total in one unit | Bounded proportional fill and explicit unit/total; clearly identify phase-local progress |
+| Different phase or changed total | Rebind to the new observation; do not fabricate an overall time estimate |
+| Lost observation | Last known state plus reconnecting/stale indicator; no advancing fill |
+| Terminal job, including `mode: complete` or `1/1` | Stop motion and render the actual outcome; completion of work is not necessarily update success |
+
+Never map state ordinals, elapsed time or arbitrary increments to a supposed
+measured percentage. Progress remains accessible with reduced motion and
+without relying on color, as specified in Part 01.
+
+### 34.5 Completion, Errors And Rollback
+
+On `COMPLETED`, refresh actual runtime version and health, update the
+installed-version row and start a fresh discovery check. Preserve the completed
+job in its panel. If no newer compatible release is found, remove Install; if
+another release exists, offer that exact candidate through a new confirmation.
+Failure of the post-update discovery is reported separately from the completed
+installation.
+
+The error view distinguishes:
+
+- rejection before mutation, with a safe prerequisite/retry action;
+- installation failure followed by verified `ROLLED_BACK`, showing the
+  restored version rather than claiming the requested version was installed;
+- `ROLLBACK_FAILED`, preserving both the original failure and recovery
+  failure with an actionable operator step;
+- interrupted or unknown outcome requiring authenticated job reconciliation.
+
+Errors remain inside the durable job view, not only a transient toast. Expose
+safe stage/error codes and human-readable causes; redact credentials, private
+headers, archive bytes and unrestricted command output. Do not replace the
+running version with the requested version before health verification.
+
+Rollback is a separate consequential action. Show it only for the scoped job
+when supported; enable it only when the server permits recovery at a safe
+boundary. Its confirmation names the previous version and warns that restoring
+the saved snapshot discards changes made after that snapshot. Later manual
+rollback, or data recovery after helper/host restart, requests the original
+operator ZIP and verifies the job's stored SHA-256 before mutation. A different
+archive is rejected. Automatic rollback during an uninterrupted update may use
+the in-memory original copy. Retain the job and exact outcome after recovery.
+
+An ordinary host reboot does not require restoring applications from ZIP.
+The recovery-upload requirement belongs to interrupted update/rollback or
+explicit restore, not to every restart.
+
+### 34.6 Shared-Component Updates
+
+Every consumed shared component, including the update helper itself, uses
+the same discovery dialog, typography/theme mapping, exact-version selection,
+live job panel and error/reconnection behavior. Controls live in the
+component's own Settings card/group and identify the affected component and
+its shared host scope.
+
+The only application-backup-gate exception is a typed shared-component update:
+no application ZIP creation/download, saved-copy acknowledgement or backup
+receipt. Before activation, the existing overlay names the component, exact
+target and shared impact; clicking `Install <version>` is the explicit
+confirmation and proceeds to the same durable job observation. Do not insert
+an empty application-backup warning for this path. This exception is not a way
+to classify an application upgrade as a helper operation.
+
+The helper preserves agent configuration, registrations and tokens through its
+signed upgrade/recovery contract. Updates to a shared instance do not reinstall
+it for each consuming application. Do not request a new enrollment merely to
+update it. An approved failure recovery uses previous verified binaries and
+configuration; it cannot claim restoration from an application ZIP that was
+never requested.
+
+The full ordinary workflow MUST be reproducible through the connected
+application's UI without a native CLI. A terminal interface is an additional
+operator surface; its actual supported operations are documented separately.
+
+## 35. Compatibility Migration To The Unified Update Workflow
+
+This section is a first-transition exception, not an alternative everyday
+update experience. It is universal: concrete executable names, versions,
+supported source ranges, profile IDs, paths and shell commands belong in each
+application's versioned runbook.
+
+When an existing application cannot yet produce the required saved-copy
+receipt, use a tested compatibility bridge:
+
+1. Identify actual running versions and registered profiles. Inspect the newest
+   relevant job by ID, component, target and timestamp; an old failed job is
+   not evidence that today's update failed.
+2. Publish and qualify the signed compatible update-helper release before
+   publishing applications that require it. Pin that dependency and digest in
+   their releases. On each host, upgrade the shared helper through its existing
+   verified trust path and check both binary and running daemon versions.
+3. Before changing legacy retention or each application, save a fresh standard
+   full ZIP on the operator's computer. The runbook makes any legacy archive
+   cleanup explicit before it can remove older recovery copies.
+4. The authorized bridge accepts the exact saved ZIP, explicit saved-copy
+   acknowledgement, registered application identity and exact target version.
+   It constructs the same scoped receipt and submits the normal authenticated
+   update protocol. It does not bypass signature, digest, backup or health
+   validation, and it preserves the live environment and application data.
+5. Transfer ZIP bytes without text conversion directly to process memory, or
+   through an explicitly supported private verified tmpfs handoff with cleanup.
+   No persistent application-host archive, manual signing-key copy or
+   fingerprint preparation is introduced. The update executes on the host;
+   a remote shell is only one possible transport for the saved bytes.
+6. Retain the returned request/job ID and follow it to verified completion.
+   On an uncertain transport result, inspect the existing job before submitting
+   anything again. Check runtime health, public authenticated access, preserved
+   settings and the service's primary function before advancing dependencies.
+7. Subsequent updates use section 34 through the application UI.
+
+An existing installation MUST NOT be passed through a destructive
+first-install bootstrap or a legacy apply route that omits the backup gate.
+A fresh installation has its own signed bootstrap flow in Part 04 and does not
+pretend to migrate an absent old application.
+
+Runbooks MUST label where each command executes (operator computer or host),
+which shell syntax it uses, required privileges, binary-safe transfer and the
+source/target version pair. Do not give a shell's continuation/redirection
+syntax as if it worked in every terminal. Existing authenticated host access
+must not be weakened to make the transport work.
+
+If a current implementation does not yet satisfy sections 34–35 or the visual
+ledger, record the exact deviation, affected versions and convergence test.
+An implementation limitation or historical screenshot cannot silently redefine
+the universal standard. The acceptance gate is
+[Part 06 section 39.1](./PART_06_UNIFIED_ACCEPTANCE_CHECKLIST.md#391-universal-update-workflow-acceptance).

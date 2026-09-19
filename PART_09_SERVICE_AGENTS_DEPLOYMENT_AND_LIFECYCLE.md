@@ -1,14 +1,14 @@
 # Part 09. Service Agents: Deployment, Initialization And Lifecycle
 
 This document is the Exocortex-wide source of truth for deploying, enrolling,
-operating and updating the Linux service agents **Neptune** and **Gryphon** from
-Kernel, Volt, Chronos and Saturn. It supplements the reusable deployment,
+operating and updating the Linux service agents **Neptune**, **Gryphon** and
+**Wyvern**, including their consuming services. It supplements the reusable deployment,
 backup, update and security Parts with the concrete Exocortex topology.
 
 This Part supersedes every former direct-connection compatibility note. Gryphon
 is the single Telegram gateway: consuming services MUST NOT embed their own
 Telegram polling or webhook runtime and MUST NOT store a bot token as an
-application setting. Updater, Neptune and Gryphon ownership, trust and operator
+application setting. Updater, Neptune, Gryphon and Wyvern ownership, trust and operator
 flows are defined only in Parts 09 and 10.
 
 This Part is subordinate only to the [Part 00 documentation authority](./PART_00_SYSTEM_UNIFICATION_SPECIFICATION.md) and takes precedence over conflicting project-local documentation.
@@ -18,12 +18,55 @@ normative.
 
 ## 1. Scope And Ownership
 
+### Service-owned schedule decision (2026-09-19)
+
+The operator approved moving automatic schedule management from the central
+panel into each owning service. Settings → Backup is now the sole operator
+surface for that service's enable/interval controls and explicit backup runs.
+This supersedes the former centralized-only schedule rule. Central storage
+retains identity, quota, revocation and fleet observation responsibilities.
+The handover contract in section 5 preserves existing policies and pending
+work; documenting it does not claim that deployed software already implements it.
+
+### Wyvern integration decision (2026-09-19)
+
+The approved Wyvern extension is a shared LLM gateway per host. A consuming
+service installer MUST ensure/reuse the host Updater, then install/reuse one
+compatible Wyvern instance through a typed component operation and enroll only
+its own client. Standalone Wyvern installation uses the same Updater-first
+boundary. Uninstalling a consumer MUST NOT remove the shared gateway or another
+consumer's binding. Default data-plane communication uses a local Unix socket;
+a dedicated domain is not required. Cross-host HTTPS is an explicit placement
+choice, not an automatic outage fallback.
+
+Wyvern opens the outgoing provider request using its configured Adapter
+credential. Its internal client identity is independently authenticated. The
+Adapter is the complete configured API profile; Driver names the protocol
+implementation. Provider keys live in Volt through Kernel, with scoped machine
+grants that prevent ordinary consumers and the legacy shared token from
+resolving Wyvern credentials or aliases to them. Reload MUST account for Volt
+value revisions even when the Register reference revision does not change.
+
+Implementation status and acceptance are tracked in the Wyvern repository.
+This extension does not declare an unpublished image installable and does not
+waive the existing signed release, update backup/receipt or recovery contracts.
+The fixed Wyvern lifecycle uses externally authoritative Kernel/Volt state.
+Updater MUST verify the signed image/API/config/capability contract, serialize
+operations, drain accepted requests and journal activation/rollback/repair.
+Runtime rollback restores only the prior deployment and admission state, never
+global Register or Volt. This exception is specific to Wyvern: no caller may
+supply a general backup exemption. Encrypted host recovery includes its private
+identities and media metadata; executable deployment files are re-provisioned
+from a trusted signed installer. Qualification is recorded separately from
+production deployment.
+
 | Component | Host ownership | Primary responsibility | Consuming modules |
 | --- | --- | --- | --- |
 | Updater | One root-owned daemon per Linux host | Performs allow-listed privileged installation, enrollment and verified update jobs | Kernel, Volt, Chronos, Saturn, Neptune, Gryphon |
 | Neptune Linux | One unprivileged `neptuned` daemon per Linux host | Exports module-owned recovery archives and optional dedicated mirrors to Saturn | Kernel, Volt, Chronos, Saturn; future approved modules |
 | Gryphon Linux | One gateway service per deployment | Owns Telegram bot tokens, webhooks, update deduplication, callbacks and service-scoped bindings | Chronos and Saturn |
-| Saturn | Central control plane and storage gateway | Issues one-time Neptune setup codes, owns desired schedules and remote commands, receives archives and mirrors | All Neptune deployments |
+| Wyvern | One shared unprivileged gateway per Linux host, or explicit remote HTTPS instance | Owns provider Adapters, keys, request transport and media handles; consumer domains retain prompts, jobs and commits | Mastermind, Laboratory |
+| Saturn | Central control plane and storage gateway | Issues single-use setup codes, enforces storage identity/quotas, receives archives/mirrors and may relay service-owned policy/commands; no central schedule editor | All Neptune deployments |
 
 An application web process MUST NOT receive `sudo`, a Docker socket, the Gryphon
 administrative socket or arbitrary command execution. UI actions call the
@@ -32,6 +75,26 @@ using the token for that registered service. Updater independently selects the
 approved installer, repository, artifact and service profile.
 
 ## 2. Trust And Communication Topology
+
+The host operator may also use `sudo updater tui`. This console is bundled
+with Updater and controls the current host's Updater, Neptune, Gryphon and
+Wyvern. It uses a separate root-owned mode-`0600`
+Unix socket at `/run/exocortex-admin/updater.sock`. That directory is not mounted
+into consuming service containers. Linux peer credentials must additionally
+identify UID 0. Shared Wyvern updates and management require root operator
+dispatch; service tokens can install/reuse Wyvern and link only their own
+registered head. The service socket and its per-head tokens retain their existing
+scope; the operator facade selects a registered head, validates a typed action
+and delegates using the daemon-owned head credential. It must not forward an
+arbitrary path, shell command or executable supplied by the terminal.
+
+The systemd runtime-directory declaration preserves both socket directories.
+The console is a separate process from the daemon, holds no persistent secrets
+or authoritative application state, and reconnects to durable job metadata
+after a transport failure or daemon self-update. Read-only local diagnostics
+remain available when the operator API is down. Enrollment codes and bot tokens
+are transient masked input. Schedule ownership, bot/service/user trust
+decisions, signed releases and rollback rules remain as specified below.
 
 ```text
 browser
@@ -153,8 +216,8 @@ together.
 1. In Saturn → **Synchronization**, create the required Linux pipeline identity
    and a single-use setup code. The code expires after 15 minutes.
 2. On the target module host, open Settings → **Backup**.
-3. When the panel reports `Detected · not linked`, select **Initialize
-   Neptune**, paste the code and confirm.
+3. When the panel reports `Detected · not linked`, select **Initialize**,
+   then paste the code and confirm in the **Initialize Neptune** overlay.
 4. The backend forwards only the setup code and its own registered service
    identity to Updater. The setup code MUST NOT be persisted by the module.
 5. Updater validates the exact module profile, exchanges the code with Saturn,
@@ -165,6 +228,14 @@ together.
    successful initialization.
 7. After `COMPLETED`, the module reloads Neptune status and confirms the expected
    pipeline set. `FAILED` shows the sanitized terminal reason and a retry path.
+
+The service entry is a card-local `Initialize` action, opening the common
+[Part 01 section 10.9 overlay](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#109-service-initialization-overlays).
+Code creation remains identity/enrollment management and is not schedule
+editing. Initialization reuses a compatible existing daemon and enrolls only
+the requested service. Completion unlocks that service's schedule controls;
+it does not enable a new schedule or run a backup implicitly. Transport
+unavailability is not proof that installation is absent.
 
 The initialization state vocabulary is `REQUESTED`, `INSTALLING`, `ENROLLING`,
 `COMPLETED` and `FAILED`. Temporary loss of the module API while its container
@@ -196,11 +267,38 @@ it MUST NOT claim that backup is ready.
 
 ## 5. Ongoing Neptune Interaction
 
-Saturn → **Synchronization** is the only authoritative operator control plane
-for automatic schedules, explicit remote runs, identities, quotas, revocation,
-fleet health and Neptune release commands. Module Settings exposes local status,
-initialization/repair and navigation to Synchronization, but no second schedule
-editor.
+### 5.1 Policy Ownership And Control
+
+The owning application's Settings → Backup authors its schedule and explicit
+run requests. Remove schedule enable/interval editors and service backup-run
+buttons from the central panel. Central inventory may display desired/applied
+state, last success and health, and manage identities, quotas, enrollment and
+revocation. Those storage security controls may block execution but cannot
+silently rewrite the service's schedule.
+
+One versioned policy record is authoritative for each service/deployment and
+pipeline. Its physical persistence may remain in an existing control-plane
+backend, but all operator writes originate from the owning service's
+authenticated workflow and are restricted to that scope. A deployment profile
+names this backend and its protocol; the application and agent must not each
+maintain an independently writable schedule. The agent keeps applied execution
+state, not an alternative operator policy.
+
+The browser calls only its authenticated service backend. The backend resolves
+required internal coordinates through the registry and uses a typed scoped
+schedule/run operation via the authorized local agent or existing control-plane
+transport. It cannot forward arbitrary command, path, identity or URL fields.
+Server-derived service/pipeline identity, authorization and expected policy
+revision prevent access to another service's schedule.
+
+A policy update contains enabled state and interval hours plus its expected
+revision; validation and commit are atomic. Return committed desired revision,
+agent-applied revision, next due, last success and any pending/error state.
+Use an idempotency key for mutations and reject stale concurrent revisions
+rather than let the last browser overwrite an unrelated change. A saved policy
+is shown as `Pending application` until the agent acknowledges it.
+
+### 5.2 Scheduling And Execution Semantics
 
 The archive and mirror paths remain separate:
 
@@ -214,10 +312,62 @@ The archive and mirror paths remain separate:
 - producer credentials cannot write WebDAV mirrors, and mirror/device
   credentials cannot create recovery archives.
 
-Recommended archive default is disabled with a 24-hour interval; the minimum
-supported interval is one hour. Enabling a schedule sets the next run and does
-not silently run it immediately. Volt mirror cadence is independent of its
-recovery ZIP cadence.
+A genuinely new profile starts disabled with a 24-hour interval; the minimum
+supported interval is one whole hour. Enforce finite integer hours and any
+declared protocol maximum on client and server. Existing profiles keep their
+actual enabled/interval values instead of receiving new-install defaults.
+
+Enabling a schedule or committing a changed interval sets its next due relative
+to the acknowledged policy activation time plus that interval. It does not
+implicitly run a backup. After a scheduled run completes, the next due follows
+the pipeline's documented fixed-delay policy; UTC timestamps avoid local DST
+changes shifting intervals. Surface the computed next due instead of asking
+the browser to predict it.
+
+`Back up now` is a separate idempotent command and may be used while automatic
+backup is disabled. It does not change enabled/interval or, by default, the
+existing scheduled next due. If an applicable project run is already active,
+return/observe that run or reject as busy; do not overlap exports or enqueue
+duplicates. Manual and scheduled due work are coalesced according to the
+single-project execution lock and a documented policy.
+
+Disabling prevents new scheduled runs, while an accepted transfer finishes or
+recovers to a safe terminal result under its retry policy. Network retries
+preserve exact archive bytes, checksum, receipt and upload offset; a saved
+schedule alone is never proof that a backup reached storage.
+
+The agent executes without an open browser or live service Settings page.
+Persist applied policy, current run and recovery state so a restart does not
+erase the schedule or replay a backlog of missed intervals. At most one
+coalesced overdue run per pipeline is considered on recovery, subject to
+permission, backpressure and the existing project/host concurrency limits.
+The UI distinguishes desired, applied, due, overdue, running, retrying and last
+remote commitment; a remote outage leaves the last applied policy intact.
+Archive and dedicated-mirror schedules remain independent in their owner card.
+
+### 5.3 Handover From Central Schedule Editing
+
+1. Inventory each current service/deployment/pipeline policy, revision,
+   enabled/interval, next due and active/queued run identity. Preserve this
+   state in the supported backup/recovery boundary before migration.
+2. Import or reuse the existing authoritative policy without new-install
+   defaults. Each service initially reads the exact prior values.
+3. Switch authoring for that scope atomically with an ownership revision/fence.
+   Disable the former central editor and its write authorization before the
+   new service workflow becomes the sole writer. If the record stays central,
+   restrict that same record's write path instead of creating a second copy.
+4. Reject stale central schedule commands/revisions after cutover. Dedupe or
+   explicitly resolve old queued run commands; never replay them as new runs.
+   An active archive/mirror transfer continues with its existing identity.
+5. Verify the desired and agent-applied policy, next due, one manual run and
+   one automatic run from the service interface. Test an agent restart and
+   central transport outage without resetting settings or duplicating work.
+6. Rollback of the migration restores one writer and the preserved policy/
+   queue boundary; it cannot leave both central and service editing active.
+
+Service backup/restore includes schedule intent and reconciliation metadata.
+These requirements describe the approved target contract, not an assertion
+that an older deployment's UI or APIs already support it.
 
 ## 6. Gryphon Initialization And Binding
 
@@ -225,11 +375,11 @@ Gryphon has three deliberately separate layers:
 
 1. **Bot registration:** a privileged operator gives a Telegram bot token to
    Gryphon with `gryphon bot connect`; only Gryphon stores it.
-2. **Service function connection:** Chronos or Saturn selects a ready Gryphon
-   bot with **Link Chronos function** or **Link Saturn function**. The service
+2. **Service function connection:** the consuming application selects a ready
+   bot with **Link <service> function** inside **Gryphon Connection**. The service
    receives only its scoped client credential.
-3. **Telegram user binding:** after the function is connected, **Initialize
-   bot** creates a service-scoped one-time `/link CODE` challenge. The operator
+3. **Telegram user binding:** after the function is connected, **Link Telegram
+   account** creates a service-scoped one-time `/link CODE` challenge. The operator
    sends it in a private chat with the selected bot. Linking one service does not
    authorize the same Telegram identity for another service.
 
@@ -250,14 +400,28 @@ Saturn do not poll Telegram, register webhooks or deduplicate Telegram updates.
 Outbound reminders, summaries and responses go back through the service-scoped
 Gryphon client socket.
 
+Before these bindings, a missing or unenrolled shared gateway is ensured/reused
+by the card's `Initialize` workflow through the typed local helper. Installing
+a daemon, linking a service function and authorizing a Telegram user are
+different actions. The old `Bot connection` card title is retired in favor
+of `Gryphon Connection`; this UI rename does not rename socket/API identifiers.
+
 ## 7. Updates
+
+The universal application/shared-component contract is
+[Part 05 section 34](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md#34-operator-update-ui).
+The concrete protocol bindings below do not limit its applicability to a fixed
+list of applications. Every consuming interface follows the same six visual
+references, exact-target confirmation and durable job lifecycle.
 
 ### 7.1 Main applications
 
-Kernel, Volt, Chronos and Saturn discover and apply their own releases through
-the Updater contract in [Part 05](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md). A
-verified logical backup precedes application mutation; health checks and
-rollback determine the terminal result.
+Every application discovers and applies its own releases through the local
+update-helper contract in [Part 05](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md).
+An exact standard full ZIP saved on the operator's computer and its scoped
+receipt are verified before application mutation; health checks and rollback
+determine the terminal result. Shared-component updates omit this application
+backup gate, not release verification or state preservation.
 
 ### 7.2 Neptune and Gryphon
 
@@ -278,11 +442,11 @@ The web client cannot supply a URL, executable path or command.
 These are daemon-local routes. Browser-facing module endpoints proxy only the
 fields required by their UI and never expose the Updater token.
 
-Neptune fleet release policy and remote commands belong in Saturn
-Synchronization. A local module panel may show the detected component version
-and expose the approved check/install workflow, but it must not introduce a
-second schedule authority. Gryphon version and update controls appear only in
-Chronos and Saturn Bot connection panels.
+Shared-agent release policy and fleet observation may remain central, while
+each local module panel exposes its approved check/install workflow. This does
+not return backup schedule/run authoring to the central panel. Each consumed agent's version and update controls
+appear in the corresponding Settings card/group of every consuming application;
+the component's topology determines its impact and authorization.
 
 Updater self-update is a separate binary lifecycle. Updating the executable
 does not by itself replace arbitrary packaging or systemd definitions. Unit or

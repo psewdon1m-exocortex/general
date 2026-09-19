@@ -102,7 +102,7 @@ Operator decision requested:
 | [Part 07. Security, Secret Handling And Exposure Control](./PART_07_SECURITY_AND_EXPOSURE_CONTROL.md) | Mandatory pre-push security review, secret-safe CI and deployment, release provenance, runtime isolation, private/concealed exposure, crawler policy and automated-probe resistance | Security review is always required; private/concealed checks additionally apply to every surface with that exposure mode |
 | [Part 08. SEO And GEO Engineering](./PART_08_SEO_AND_GEO.md) | Conditional pre-push visibility review, indexable HTML, metadata, structured data, discovery, feeds, agent interfaces, public-content generation and search observability | The product has public, intentionally indexable content or an explicit maximum-discovery objective |
 | [Part 09. Service Agents: Deployment, Initialization And Lifecycle](./PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md) | Concrete Updater, Neptune and Gryphon topology, installation, enrollment, control, update and recovery contracts | A module deploys, initializes or operates a shared host agent |
-| [Part 10. Service Agents: UI And Operator Workflows](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md) | Concrete backup, messaging connection, updates and synchronization panels, states, controls and linked visual templates | A module exposes shared-agent status or actions |
+| [Part 10. Service Agents: UI And Operator Workflows](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md) | Reusable Settings cards, service-owned backup schedules, messaging/LLM connections, shared initialization overlays and update workflows | An application exposes shared-agent status or actions |
 | [Part 11. Initial Multi-Service Deployment Profile](./PART_11_INITIAL_MULTI_SERVICE_DEPLOYMENT.md) | Concrete coordinated deployment, trust, recovery and acceptance profile for the initial service set | Deploying or validating that explicitly named service topology |
 | [Part 12. Known Deployment And Operations Problems](./PART_12_KNOWN_DEPLOYMENT_AND_OPERATIONS_PROBLEMS.md) | Stable cross-service problem IDs, recurring deployment/operations failure classes, durable remediation and the mandatory known-problem release gate | Every service-qualified release and every incident/regression that reveals a reusable failure class |
 
@@ -132,6 +132,32 @@ Operator decision requested:
   accessibility and responsive rules take precedence over incidental
   anti-aliasing, crop and one-pixel rounding in those raster exports. Example
   names, icons and data remain placeholders unless the text says otherwise.
+- The six Settings card examples and their pixel/token ledger are owned by
+  [Part 01 section 10.5](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#105-settings-templates);
+  their common initialization overlay family is defined in
+  [section 10.9](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#109-service-initialization-overlays)
+  and [Part 10 section 8](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md#8-initialize-overlay-workflow).
+  Required gateway card labels identify integrations, not a fixed set of
+  consuming products. Example application identities remain placeholders.
+- By the operator's central-documentation decision of 2026-09-19, schedule
+  editing and explicit service backup runs belong to each owning service's
+  Backup card. Central fleet/storage views retain observation and authorized
+  identity administration, without a second schedule editor or run control.
+  [Part 09 section 5](./PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md#5-ongoing-neptune-interaction)
+  defines single-policy ownership, agent autonomy and a migration preserving
+  existing schedules and active runs. Part 03 requires those settings in
+  backup/restore. This approved target does not assert deployed conformance.
+- The universal update workflow is owned by
+  [Part 01 section 10.8](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#108-update-dialog-templates)
+  for the six embedded visual examples and measurement ledger,
+  [Part 03 section 13.2](./PART_03_BACKUP_AND_RECOVERY.md#132-backup-lifetime-during-an-application-update)
+  for archive lifetime,
+  [Part 05 sections 34–35](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md#34-operator-update-ui)
+  for behavior and the separate first-transition contract, and
+  [Part 06 section 39.1](./PART_06_UNIFIED_ACCEPTANCE_CHECKLIST.md#391-universal-update-workflow-acceptance)
+  for acceptance. These rules use application/shared-component roles rather
+  than product lists. Historical names and versions inside a reference PNG
+  are illustrative; an approved theme adaptation preserves the complete flow.
 - This orchestrator is normative for document selection, evidence, divergence
   handling, approval and final handoff.
 - Part 06 integrates the other unification parts but does not replace their

@@ -1,6 +1,6 @@
 # Part 08. SEO And GEO Engineering Guide
 
-Document version: 1.3  
+Document version: 1.5  
 Reviewed: September 16, 2026
 
 ## 1. Purpose
@@ -26,6 +26,8 @@ This Part takes precedence over conflicting project-local documentation.
 Project documents MUST adapt these rules to current project-specific values
 without weakening them. A material implementation difference follows the
 reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIFICATION.md#1-mandatory-material-divergence-protocol); stale local documentation is corrected and is not an alternative authority.
+
+# PART I — MAXIMUM DISCOVERABILITY
 
 ## 2. Core principles
 
@@ -549,66 +551,6 @@ A sitemap SHOULD provide:
 
 `<priority>` and `<changefreq>` SHOULD be omitted. `<lastmod>` changes only after a material page update.
 
-## 10. robots.txt and the Bot Policy Registry
-
-### 10.1. One policy source
-
-Rules must not be edited independently in `robots.txt`, a reverse proxy, the application, and documentation. Create a Bot Policy Registry:
-
-```yaml
-version: "2026-08-19.1"
-
-purposes:
-  classic_search: allow
-  ai_search: allow
-  user_fetch: allow_public_only
-  model_training: deny
-  unknown_automation: rate_limit
-
-zones:
-  public:
-    paths: ["/"]
-    search: allow
-    ai_search: allow
-    user_fetch: allow
-
-  private:
-    paths: ["/account/", "/admin/", "/preview/"]
-    enforcement: authentication
-    automation: deny
-```
-
-Generate the following from the registry:
-
-- `robots.txt`;
-- edge or WAF rules;
-- test fixtures;
-- documentation;
-- a policy-change log.
-
-### 10.2. robots.txt
-
-Example:
-
-```text
-User-agent: *
-Disallow: /admin/
-Disallow: /account/
-Disallow: /preview/
-Disallow: /internal-search/
-
-Sitemap: https://example.com/sitemap-index.xml
-```
-
-Model-training policies are added only after a business decision. A search crawler and a training crawler from the same provider can serve different purposes and must not automatically receive the same rule.
-
-`robots.txt` MUST NOT be used for:
-
-- protecting private data;
-- hiding secrets;
-- guaranteeing removal of a URL from an index;
-- authenticating a User-Agent.
-
 ## 11. llms.txt
 
 ### 11.1. Role
@@ -1112,35 +1054,7 @@ CI for a public MCP MUST use a real compatible MCP client, not only raw HTTP fix
 - controlled errors for invalid identifiers and cursors;
 - proof that draft, private, and unpublished objects remain inaccessible.
 
-A new state-changing tool appearing on the public retrieval MCP MUST fail the release unless an explicit architecture change creates a separate privileged trust boundary.
-
-## 16. Agent Action API
-
-An Action API is needed only for state-changing operations such as creating a request, draft, booking, cart, or another transaction. A public read-only MCP and a privileged Action API are separate trust boundaries. State-changing operations MUST NOT be added to the public retrieval MCP merely for implementation convenience.
-
-For an information-only site, the Evidence API is the sufficient and safer interface for agents to find quotations and informational blocks. Citation retrieval is a read operation and MUST NOT be implemented as a privileged action.
-
-When actions exist, the API MUST support:
-
-- OAuth or another verifiable delegated-authorization mechanism;
-- minimal scopes;
-- `Idempotency-Key`;
-- dry run or preview;
-- a separate confirmation endpoint;
-- an audit log;
-- rate limiting;
-- anti-fraud controls;
-- explicit machine-readable errors.
-
-Example:
-
-```text
-POST /api/agent/v1/request/preview
-POST /api/agent/v1/request/confirm
-GET  /api/agent/v1/request/{id}
-```
-
-An irreversible action MUST require a separate user confirmation. Text from a web page or uploaded document can never initiate a tool call by itself.
+A new state-changing tool appearing on the public retrieval MCP MUST fail validation unless an explicit architecture change creates a separate privileged trust boundary.
 
 ## 17. Search-engine notifications
 
@@ -1421,6 +1335,358 @@ Minimize or mask IP data and retain it only under a defined retention policy.
 
 Never report an accepted notification as proof of indexing. Observability SHOULD NOT record complete MCP search queries, publication bodies, or full MCP responses by default merely for metrics collection.
 
+# PART II — MAXIMUM CONCEALMENT
+
+## C1. Concealment objectives and terminology
+
+Maximum concealment is a different engineering objective from search suppression. A system MUST distinguish the following concepts before choosing controls:
+
+- **crawl suppression**: asking or forcing automated crawlers not to fetch a resource;
+- **index suppression**: preventing a resource from appearing in a search or retrieval index;
+- **access protection**: preventing an unauthorized requester from receiving the protected content;
+- **concealment**: minimizing disclosure that a protected resource, route, hostname, identifier, object, or relationship exists at all.
+
+These controls solve different problems and MUST NOT be treated as interchangeable. `robots.txt` can influence compliant crawlers but is not access control. `noindex` can influence compliant indexes but is not access control. Authentication can protect content even when the URL is known, but it does not by itself conceal that the URL exists.
+
+A resource that contains confidential information MUST rely on access protection first. Search and crawler directives are defense-in-depth controls around that access boundary.
+
+Maximum concealment is best-effort. A service cannot guarantee that a third party has not retained a URL or representation that was previously public. If a resource has ever been public, the product MUST treat removal from indexes, caches, feeds, third-party archives, and external copies as a transition process rather than as proof that every prior copy has disappeared.
+
+Part 08 governs search, crawler, agent, and public-machine exposure. Network-level concealment, hostname concealment, certificate exposure, service reachability, and other perimeter controls remain subject to the security and exposure rules in Part 07.
+
+## C2. Discovery and concealment profiles
+
+Every route type and every publication/content state that can differ in public visibility SHOULD resolve to one explicit exposure profile. A product MAY use different names, but the semantics MUST be equivalent and machine-readable.
+
+Recommended profiles:
+
+1. `public_indexable` — intentionally public and discoverable; governed primarily by Part I.
+2. `public_noindex` — intentionally reachable without authentication, but not intended for conventional or generative indexing.
+3. `private` — content requires authentication or another access-control decision; existence of the general route or service is not necessarily sensitive.
+4. `concealed` — content requires access protection and the product also minimizes disclosure that the resource, identifier, route, hostname, or relationship exists.
+
+A route or object MUST NOT silently inherit `public_indexable` merely because it is reachable over HTTP. The profile must be determined from explicit page-type, content-state, and security policy.
+
+### C2.1. Reference matrix
+
+The following matrix defines the default posture. Product-specific exceptions require an explicit architecture decision and the same material-divergence process used elsewhere in this Part.
+
+| Surface or control | `public_indexable` | `public_noindex` | `private` | `concealed` |
+| --- | --- | --- | --- | --- |
+| Anonymous content fetch | allowed | allowed | denied before protected content | denied before protected content |
+| Authentication | optional | optional | required | required and MAY include network restriction |
+| Index directive | normal indexing | `noindex` | `noindex`, `nofollow`, `noarchive` as defense in depth | same defense in depth when a response is exposed at all |
+| `robots.txt` | allow by policy | do not block when crawler must see `noindex` | MAY disallow if path disclosure is acceptable | MUST NOT enumerate sensitive individual paths merely to block them |
+| Sitemap | include | exclude | exclude | exclude |
+| Public internal links | normal | MAY exist for UX; not a concealment mechanism | only after authentication where needed | MUST NOT appear in public HTML or public navigation |
+| RSS/Atom | include where applicable | exclude | exclude | exclude |
+| `llms.txt` | include where applicable | exclude | exclude | exclude |
+| JSON-LD/public schema | normal | only if intentionally public and useful; MUST NOT imply indexability | exclude protected object data | exclude |
+| Open Graph/social preview | normal | MAY exist if sharing is intentional | MUST NOT expose protected metadata | exclude |
+| Public Evidence API | include where applicable | exclude | exclude | exclude |
+| Public API/catalog/search | include where applicable | exclude unless explicitly public-noindex API behavior is required | exclude protected objects | exclude and prevent enumeration |
+| Public MCP | include where applicable | exclude | exclude | exclude, including completion and direct lookup |
+| Search-engine notifications | publish/update/delete as designed | MUST NOT submit as a discovery target | exclude | exclude; never reveal a never-public URL merely through notification |
+| Edge automation policy | normal bot policy | allow compliant fetch when needed for `noindex` | authenticate/deny as appropriate | default deny for unauthenticated automation unless an explicit exception exists |
+| Cache policy | public as designed | public/private as product requires | `private, no-store` | `private, no-store` plus explicit edge-cache prohibition |
+
+The matrix is intentionally asymmetric. `public_noindex` is still public. It must not be used as a substitute for `private` or `concealed` when disclosure would be harmful.
+
+## C3. `noindex`, `robots.txt`, and access control are not substitutes
+
+### C3.1. Public non-indexable resources
+
+A resource that is intentionally public but should not appear in search results SHOULD remain fetchable by compliant crawlers long enough for them to observe its `noindex` directive. Blocking the same URL in `robots.txt` can prevent a crawler from seeing the `noindex` response.
+
+A `public_noindex` response SHOULD use an HTML robots directive or `X-Robots-Tag` appropriate to the media type. The URL MUST be excluded from sitemaps, feeds, `llms.txt`, public Evidence catalogs, public MCP, and other discovery-oriented machine inventories unless the product explicitly documents a different public-noindex contract.
+
+`public_noindex` does not mean secret. Users, link preview systems, security scanners, browser history, referrers, external links, logs, and any party that knows the URL may still observe or fetch it.
+
+### C3.2. Private resources
+
+Private content MUST be protected by authentication, authorization, a private network boundary, or another enforceable access-control mechanism before protected data is returned. The response MUST NOT include protected titles, excerpts, filenames, asset URLs, structured data, or other object-specific metadata before the access decision succeeds.
+
+`X-Robots-Tag: noindex, nofollow, noarchive` and `Cache-Control: private, no-store` SHOULD be added to private responses and authentication surfaces as defense in depth, but those headers are not the security boundary.
+
+A generic authentication page MAY be publicly reachable. Protected object metadata MUST NOT be embedded into that page merely so the client can render it after login.
+
+### C3.3. Concealed resources
+
+A concealed resource has a stronger requirement than ordinary private content: the implementation SHOULD minimize externally observable evidence that the resource exists.
+
+Where practical, concealed services SHOULD use private addressing, private DNS, a VPN/overlay, an authenticated reverse proxy, service-mesh reachability, or another non-public network path rather than relying on an obscure public URL.
+
+If a concealed route must exist behind a public origin, unauthenticated behavior SHOULD avoid object-specific differences. Error pages, response bodies, redirects, headers, and client-visible metadata MUST NOT reveal the protected title, object type, storage location, internal hostname, or replacement URL.
+
+A product MAY return `404 Not Found` instead of an existence-confirming authorization response for a concealed object when that behavior is compatible with the API and product contract. This is concealment behavior, not a replacement for authentication or authorization.
+
+## C4. Discovery-surface exclusion
+
+A private or concealed object MUST be excluded from every public inventory derived from content state. Removing it from the visible navigation alone is insufficient.
+
+At minimum, exclusion applies to:
+
+- XML sitemap indexes and shards;
+- RSS and Atom feeds;
+- `llms.txt` and any equivalent AI-discovery manifest;
+- public JSON-LD that identifies the protected object;
+- Open Graph, social-card metadata, and public preview endpoints that reveal protected metadata;
+- public Evidence API objects and search results;
+- public OpenAPI examples or enumerations containing protected identifiers;
+- public MCP tools, resources, resource templates, completion results, search results, and direct lookup;
+- public site search, autocomplete, related-content lists, topic indexes, tags, archives, and pagination counts;
+- IndexNow or other discovery notifications for a never-public protected URL;
+- `Link` response headers, preload/prefetch hints, `rel=alternate`, `rel=canonical`, `rel=describedby`, service descriptors, and equivalent machine links on public responses;
+- service-worker precache manifests and public web manifests when they would reveal a protected path or asset;
+- static route catalogs, client configuration objects, generated navigation data, and public source maps;
+- public analytics payloads, telemetry dimensions, or error-report metadata that contain concealed object identifiers or URLs.
+
+A concealed object MUST NOT become inferable merely through aggregate counts when the count itself is sensitive. For example, a public API that reports `total=101` while returning only 100 public items may reveal the existence of a hidden object. Public counts MUST be computed from the public visibility set, not from the underlying unrestricted table.
+
+## C5. Visibility inheritance for assets and derived artifacts
+
+Visibility is transitive. A protected parent object MUST NOT reference a less-protected child representation unless the exception is explicit, necessary, and reviewed.
+
+The visibility profile of an article, document, user object, or private page MUST propagate to associated artifacts, including:
+
+- source PDFs and original uploads;
+- images, thumbnails, posters, video, and audio;
+- attachments and downloadable files;
+- transcripts and abstracts;
+- generated summaries and Evidence files;
+- JSON manifests and generation metadata;
+- workflow/canvas/project files;
+- derived previews and social-card images;
+- static exports and machine-readable alternates.
+
+A private HTML wrapper around a publicly accessible attachment is not private. A concealed publication whose PDF can be downloaded through an unauthenticated asset URL has failed concealment.
+
+Authenticated asset delivery is preferred for protected content. If a short-lived signed URL is used, it MUST have a bounded lifetime and scope, MUST NOT be stored in public discovery artifacts, and SHOULD be delivered with a referrer policy that does not leak the token or protected path. Long-lived public bearer URLs SHOULD NOT be used for maximum-concealment content.
+
+## C6. Transitions from public to non-public state
+
+Changing a resource from public/indexable to private or concealed is a coordinated lifecycle event. The system MUST update all public representations from the same transaction or durable outbox used for publication events.
+
+The transition MUST, where applicable:
+
+1. stop anonymous access to protected content immediately;
+2. remove the object from public listings, sitemaps, feeds, `llms.txt`, public APIs, Evidence, MCP, site search, related-content graphs, and autocomplete;
+3. invalidate or purge public HTML, API, CDN, reverse-proxy, service-worker, and derived-representation caches;
+4. revoke public asset URLs or make their authorization inherit the new profile;
+5. stop discovery notifications for the protected URL;
+6. remove public structured data and social-preview metadata that reveal the protected object;
+7. update redirects so a public URL does not redirect to a concealed URL and thereby disclose it;
+8. record the transition for audit and rollback;
+9. start index-removal procedures when the URL was previously indexed.
+
+If the content is confidential, access protection takes priority over allowing a crawler to revisit the old page. Do not leave confidential content publicly fetchable merely so a crawler can see `noindex`. Search-engine removal controls MAY be used to accelerate deindexing, but they are not an access-control mechanism and do not prove that external copies no longer exist.
+
+If a previously public object is permanently removed rather than made private, use the ordinary `404`, `410`, or replacement redirect lifecycle defined in Section 4. Do not redirect an old public URL to a concealed replacement.
+
+## C7. `robots.txt` disclosure hazards
+
+`robots.txt` is public. A path written into it can advertise that the path exists.
+
+For ordinary private areas whose names are not sensitive, a rule such as:
+
+```text
+User-agent: *
+Disallow: /admin/
+```
+
+may be appropriate as a crawler directive in addition to authentication.
+
+For a concealed resource whose existence or exact path is sensitive, the system MUST NOT enumerate that individual route in `robots.txt` merely to hide it. Prefer access control and edge policy. If a robots rule is still required, use a coarse, non-sensitive zone only when disclosing that zone is acceptable.
+
+A robots rule MUST NOT contain secret identifiers, account IDs, object IDs, tokens, internal hostnames, one-time URLs, or other values that would not otherwise be intentionally public.
+
+## C8. Public client and browser leakage
+
+A concealed backend can still be exposed by a public frontend. Build processes MUST inspect public client artifacts for protected topology and identifiers.
+
+Publicly served HTML, JavaScript, CSS, source maps, JSON bootstrap state, route manifests, service-worker caches, web manifests, comments, debug panels, error messages, and configuration endpoints MUST NOT contain concealed:
+
+- hostnames;
+- internal service names when those names are classified as concealed;
+- route paths;
+- object identifiers;
+- storage paths;
+- credentials or signed URLs;
+- API schemas or operation names that disclose a concealed service;
+- fallback URLs that reveal the protected origin.
+
+Client-side routing is not access protection. A route that is omitted from the visible menu but remains accessible through a shipped client router is still disclosed.
+
+A concealed response SHOULD avoid third-party scripts, analytics, fonts, pixels, images, embeds, or error-reporting endpoints unless they are explicitly approved for that trust boundary. Third-party network requests can reveal the protected page URL, timing, user identity, or existence of the resource even when search indexing is disabled.
+
+Where external navigation is possible from a concealed surface, a strict referrer policy such as `no-referrer` SHOULD be considered. The selected policy MUST be compatible with the product's required workflows.
+
+## C9. Cache, archive, and intermediary controls
+
+Protected responses MUST NOT be stored in a shared public cache unless the cache is specifically designed to enforce the same authorization boundary.
+
+Private or concealed content SHOULD send:
+
+```http
+Cache-Control: private, no-store
+X-Robots-Tag: noindex, nofollow, noarchive
+```
+
+The reverse proxy, CDN, application cache, browser-facing service worker, and any generated static-export layer MUST honor the protection profile independently. `Vary: Authorization` or `Vary: Cookie` alone MUST NOT be treated as proof that a response cannot leak through a shared cache.
+
+A change from public to private/concealed MUST trigger active cache invalidation. Waiting only for TTL expiration is insufficient when stale content is confidential.
+
+Generated previews, thumbnails, transcripts, abstracts, and other derived files MUST be purged or reprotected together with their parent object.
+
+## C10. Bot and automation policy for concealed zones
+
+The progressive bot-handling model in Section 24 is appropriate for ordinary public surfaces. Concealed zones require a stricter default.
+
+For unauthenticated requests to concealed content, unknown automation SHOULD be denied by default rather than merely observed. Known search, AI-search, model-training, preview, archive, and scraping bots MUST NOT receive protected content merely because their identity was successfully verified.
+
+Bot verification answers the question "who is requesting?" It does not answer "is this requester authorized to read this protected object?" Authorization remains independent.
+
+A concealed endpoint SHOULD avoid behavior that distinguishes verified search bots from ordinary unauthenticated users when that distinction would reveal the existence or content of the protected object.
+
+Social-link preview crawlers are automation too. `noindex` does not prevent a messaging platform or social preview service from fetching a public URL. If preview disclosure is unacceptable, the resource must be private/concealed rather than merely `noindex`.
+
+## C11. Enumeration and side-channel resistance
+
+A protected object MUST NOT be discoverable through public enumeration merely because direct content access is denied.
+
+Review all public interfaces for:
+
+- sequential or guessable IDs;
+- different error messages for existing and nonexistent concealed objects;
+- autocomplete and completion results;
+- search result counts;
+- pagination totals;
+- timing differences that trivially reveal object existence;
+- redirects that expose canonical protected URLs;
+- asset URLs containing stable internal identifiers;
+- public logs or status endpoints listing protected routes;
+- monitoring dashboards or metrics labels exposed without authentication.
+
+Where existence itself is sensitive, unauthenticated responses SHOULD be normalized enough that the application does not intentionally disclose object existence. Exact constant-time network behavior is not required, but obvious metadata and status differences SHOULD be avoided where practical.
+
+Rate limiting SHOULD be applied to identifier probing, search, autocomplete, authentication, and other endpoints that could be used for enumeration.
+
+## C12. Concealment verification contract
+
+A product claiming a `concealed` profile MUST prove absence from public discovery and absence of unauthorized content access. Manual inspection is insufficient as the only control.
+
+Automated verification SHOULD include:
+
+- anonymous `GET` and `HEAD` requests do not return protected body content or metadata;
+- unauthenticated API requests cannot distinguish protected object metadata through list, detail, search, count, completion, or error responses beyond the documented contract;
+- sitemap indexes and shards contain no protected URL;
+- RSS/Atom contain no protected URL or title;
+- `llms.txt` and equivalent manifests contain no protected object, hostname, path, or machine endpoint;
+- public JSON-LD and Open Graph contain no protected metadata;
+- public Evidence APIs contain no protected passage or identifier;
+- public MCP list, search, completion, resource enumeration, resource read, and direct lookup contain no protected object;
+- public OpenAPI or other API descriptions do not expose concealed operations or hostnames when those are classified as concealed;
+- public HTML, JS, CSS, source maps, route manifests, service-worker manifests, and static assets do not contain classified concealed strings;
+- direct child assets enforce the same or stricter visibility as their parent;
+- shared caches do not return a previously authorized response to an unauthorized request;
+- a public URL does not redirect to a concealed URL;
+- `robots.txt` does not enumerate an individually concealed path;
+- third-party requests are absent or explicitly approved on concealed surfaces;
+- a public-to-concealed transition purges stale public representations;
+- the Part 07 concealment audit passes for network, hostname, certificate, service, and perimeter exposure that falls outside Part 08.
+
+A failed concealment check MUST fail validation for a product or route whose declared profile is `concealed`.
+
+
+
+## 10. robots.txt and the Bot Policy Registry
+
+### 10.1. One policy source
+
+Rules must not be edited independently in `robots.txt`, a reverse proxy, the application, and documentation. Create a Bot Policy Registry:
+
+```yaml
+version: "2026-08-19.1"
+
+purposes:
+  classic_search: allow
+  ai_search: allow
+  user_fetch: allow_public_only
+  model_training: deny
+  unknown_automation: rate_limit
+
+zones:
+  public:
+    paths: ["/"]
+    search: allow
+    ai_search: allow
+    user_fetch: allow
+
+  private:
+    paths: ["/account/", "/admin/", "/preview/"]
+    enforcement: authentication
+    automation: deny
+```
+
+Generate the following from the registry:
+
+- `robots.txt`;
+- edge or WAF rules;
+- test fixtures;
+- documentation;
+- a policy-change log.
+
+### 10.2. robots.txt
+
+Example:
+
+```text
+User-agent: *
+Disallow: /admin/
+Disallow: /account/
+Disallow: /preview/
+Disallow: /internal-search/
+
+Sitemap: https://example.com/sitemap-index.xml
+```
+
+Model-training policies are added only after a business decision. A search crawler and a training crawler from the same provider can serve different purposes and must not automatically receive the same rule.
+
+`robots.txt` MUST NOT be used for:
+
+- protecting private data;
+- hiding secrets;
+- guaranteeing removal of a URL from an index;
+- authenticating a User-Agent.
+
+## 16. Agent Action API
+
+An Action API is needed only for state-changing operations such as creating a request, draft, booking, cart, or another transaction. A public read-only MCP and a privileged Action API are separate trust boundaries. State-changing operations MUST NOT be added to the public retrieval MCP merely for implementation convenience.
+
+For an information-only site, the Evidence API is the sufficient and safer interface for agents to find quotations and informational blocks. Citation retrieval is a read operation and MUST NOT be implemented as a privileged action.
+
+When actions exist, the API MUST support:
+
+- OAuth or another verifiable delegated-authorization mechanism;
+- minimal scopes;
+- `Idempotency-Key`;
+- dry run or preview;
+- a separate confirmation endpoint;
+- an audit log;
+- rate limiting;
+- anti-fraud controls;
+- explicit machine-readable errors.
+
+Example:
+
+```text
+POST /api/agent/v1/request/preview
+POST /api/agent/v1/request/confirm
+GET  /api/agent/v1/request/{id}
+```
+
+An irreversible action MUST require a separate user confirmation. Text from a web page or uploaded document can never initiate a tool call by itself.
+
 ## 24. AI bots and edge verification
 
 A User-Agent is easy to forge. An edge allow decision SHOULD consider:
@@ -1522,7 +1788,7 @@ Where the fields exist, the following MUST agree semantically across canonical H
 - content-modification date;
 - publisher or author identity.
 
-A stale machine representation is a release failure. For example, canonical HTML for revision 7 combined with Evidence or MCP content for revision 6 MUST block deployment.
+A stale machine representation is a validation failure. For example, canonical HTML for revision 7 combined with Evidence or MCP content for revision 6 MUST fail validation.
 
 ### 26.5. Public MCP integration tests
 
@@ -1543,9 +1809,17 @@ When a product exposes a public MCP endpoint, CI MUST exercise it with a compati
 - controlled errors;
 - absence of draft, private, and unpublished content.
 
-The appearance of a mutation-capable tool on the public retrieval MCP MUST fail the release.
+The appearance of a mutation-capable tool on the public retrieval MCP MUST fail validation.
 
-### 26.6. UI and UX regression tests
+### 26.6. Concealment tests
+
+When a route, object, service, or content class declares the `private` or `concealed` profile, CI MUST validate the applicable controls. For `concealed` profiles the test set MUST include the verification contract in Section C12.
+
+At minimum, automated tests MUST verify that protected objects are absent from public discovery artifacts and machine inventories, direct assets inherit protection, unauthenticated responses do not contain protected metadata, shared caches cannot replay protected content, and public client artifacts do not expose classified concealed routes, hostnames, identifiers, or URLs.
+
+A transition from `public_indexable` or `public_noindex` to `private` or `concealed` MUST include a regression test proving that stale sitemap, feed, `llms.txt`, Evidence, MCP, public API, static-client, and cache representations have been removed or invalidated.
+
+### 26.7. UI and UX regression tests
 
 Every SEO/GEO change that touches rendering, templates, assets, navigation, media, or client initialization MUST pass UI and UX regression checks.
 
@@ -1559,11 +1833,11 @@ At minimum, compare:
 - loading, empty, success, and error behavior;
 - behavior with JavaScript enabled against the approved baseline.
 
-A meaningful visual or interaction difference MUST fail the release unless it has separate product and design approval. Search improvements alone are not approval for a user-facing change.
+A meaningful visual or interaction difference MUST fail validation unless it has separate product and design approval. Search improvements alone are not approval for a user-facing change.
 
-### 26.7. Release smoke test
+### 26.8. Production validation
 
-After launching a production candidate:
+For a production environment, validate:
 
 1. open one control URL for every page type;
 2. inspect source HTML without browser rendering;
@@ -1580,26 +1854,27 @@ After launching a production candidate:
 13. verify representation consistency for a published control article;
 14. complete visual and interaction smoke tests on supported desktop and mobile viewports.
 
-### 26.8. Mandatory pre-push SEO/GEO/MCP impact audit
+### 26.9. Mandatory SEO/GEO/MCP impact audit
 
-This profile is mandatory before every branch or tag push when the product has
-an intentionally `public/indexable` surface or an explicit objective of maximum
-search and generative-engine discovery. A mixed service applies it only to its
+This audit is mandatory for changes that affect an intentionally
+`public/indexable` surface or an explicit objective of maximum search and
+generative-engine discovery. A mixed service applies it only to its
 public/indexable page types and the shared rendering/discovery infrastructure.
-If neither condition exists, the pre-push record may use `N/A` only after naming
-the inspected route and page-type registries. Once the profile is active, an
-unrelated diff receives a proportionate no-impact `PASS`, not `N/A`.
+If neither condition exists, the audit record may use `N/A` only after naming
+the inspected route and page-type registries. An unrelated change receives a
+proportionate no-impact `PASS`, not `N/A`.
 
-Inspect the complete outgoing diff for added, changed or removed routes, page
+Inspect the complete change set for added, changed or removed routes, page
 types, templates, content fields, navigation, links, localization, metadata,
 structured data, media, rendering/hydration, authentication rules, redirects,
-publication states, feeds, machine-facing APIs, MCP tools/resources/schemas, MCP transport policy and discovery files. A visual
-element becomes relevant when it changes page meaning, hierarchy, navigation,
-accessible text, media semantics, rendered HTML or discoverability; purely
-decorative pixels do not create a new page type but still require the ordinary
-UI/UX regression decision.
+publication states, feeds, machine-facing APIs, MCP tools/resources/schemas,
+MCP transport policy and discovery files. A visual element becomes relevant
+when it changes page meaning, hierarchy, navigation, accessible text, media
+semantics, rendered HTML or discoverability; purely decorative pixels do not
+create a new page type but still require the ordinary UI/UX regression
+decision.
 
-An affected push MUST:
+An affected change MUST:
 
 1. add or update the page-type registry with route pattern, status, rendering,
    index policy, canonical policy, sitemap membership, lifecycle, schema and
@@ -1615,37 +1890,39 @@ An affected push MUST:
    `robots.txt`, `llms.txt` and public Evidence/OpenAPI endpoints that are in
    scope;
 6. when public MCP is enabled, validate its read-only tool/resource inventory,
-   public schemas, pagination, visibility rules, transport policy and consistency
-   with the current published revision;
+   public schemas, pagination, visibility rules, transport policy and
+   consistency with the current published revision;
 7. prove every indexable URL has a server-rendered inbound link, returns the
    intended content without requiring JavaScript and remains semantically
    equivalent after hydration;
 8. apply the documented deletion/rename lifecycle so removed pages leave no
-   stale canonical, sitemap, feed, structured-data, Evidence, MCP or internal-link entry;
+   stale canonical, sitemap, feed, structured-data, Evidence, MCP or
+   internal-link entry;
 9. verify image/media semantics, mobile parity, accessibility, performance
    budgets and the complete UI/UX regression contract for changed templates;
 10. prove that no private, authenticated or concealed URL, hostname, identifier
-    or content enters any public discovery artifact, Evidence surface, MCP surface
-    or public client source, and satisfy the [Part 07 concealment audit](./PART_07_SECURITY_AND_EXPOSURE_CONTROL.md#5032-conditional-private-and-concealed-exposure-pass)
+    or content enters any public discovery artifact, Evidence surface, MCP
+    surface or public client source, and apply the relevant concealment checks
     for those non-public surfaces;
 11. update operator and technical documentation for new page types, discovery
-    behavior, MCP contracts, generation jobs, limits and failure/recovery procedures.
+    behavior, MCP contracts, generation jobs, limits and failure/recovery
+    procedures.
 
-A `PASS` records the outgoing revision, affected page types and control URLs,
-the SEO/GEO/MCP release diff, exact validation commands and results. Missing page
-classification, an unexplained indexable-URL count change, global `noindex`,
-broken canonical/internal links, stale discovery artifacts, structured data
-that disagrees with visible content, a leaked private URL, an unversioned incompatible
-public MCP schema change, a mutation-capable tool on the public retrieval MCP, or
-MCP exposure of a non-public object blocks the push.
+A `PASS` records the affected page types and control URLs, the SEO/GEO/MCP
+change diff, exact validation commands and results. Missing page classification,
+an unexplained indexable-URL count change, global `noindex`, broken
+canonical/internal links, stale discovery artifacts, structured data that
+disagrees with visible content, a leaked private URL, an unversioned
+incompatible public MCP schema change, a mutation-capable tool on the public
+retrieval MCP, or MCP exposure of a non-public object MUST fail validation.
 
-Search or agent visibility cannot be guaranteed by the implementation. The gate
-proves that the approved discoverability contract is technically present and
-has not regressed; it does not claim ranking, indexing or citation outcomes.
+Search or agent visibility cannot be guaranteed by the implementation. The
+audit proves that the approved discoverability contract is technically present
+and has not regressed; it does not claim ranking, indexing or citation outcomes.
 
-## 27. SEO/GEO/MCP release diff
+## 27. SEO/GEO/MCP change diff
 
-Produce a machine-readable diff for every release:
+Produce a machine-readable diff for every material change set:
 
 ```diff
  /journal/example
@@ -1669,9 +1946,9 @@ The diff SHOULD also describe changes to public machine contracts when they are 
 + publication schema: publication.mcp.article.v2
 ```
 
-A bulk change to status, canonical URL, or `indexPolicy` MUST block deployment until explicitly approved. An incompatible public MCP schema change, a new mutation-capable public MCP tool, or a change that exposes non-public content through a machine interface MUST also block deployment until explicitly approved.
+A bulk change to status, canonical URL, or `indexPolicy` MUST require explicit approval. An incompatible public MCP schema change, a new mutation-capable public MCP tool, or a change that exposes non-public content through a machine interface MUST also require explicit approval.
 
-The release should also indicate whether templates or interaction code changed. If they did, link the corresponding visual and interaction regression result.
+The change record should also indicate whether templates or interaction code changed. If they did, link the corresponding visual and interaction regression result.
 
 ## 28. Critical alerts
 
@@ -1694,6 +1971,12 @@ The release should also indicate whether templates or interaction code changed. 
 - MCP publication revisions diverge from canonical HTML or Evidence data;
 - MCP error or rate-limit pressure rises sharply;
 - MCP resource or catalog pagination becomes incomplete;
+- a `private` or `concealed` object appears in a sitemap, feed, `llms.txt`, public Evidence result, public API catalog, public MCP surface, or public search/autocomplete result;
+- a public client bundle, source map, service-worker manifest, error payload, or telemetry event exposes a classified concealed hostname, route, identifier, or signed URL;
+- a protected asset becomes anonymously reachable even though its parent object is private or concealed;
+- a shared cache serves content generated for an authenticated request to an unauthorized requester;
+- `robots.txt` begins enumerating an individually concealed route or identifier;
+- a public-to-concealed transition leaves a stale public cache, redirect, machine representation, or discovery artifact;
 - visual or interaction monitoring detects a regression in the established UI or UX.
 
 ## 29. Recommended implementation sequence
@@ -1770,7 +2053,7 @@ The release should also indicate whether templates or interaction code changed. 
 - IndexNow;
 - Search Console setup;
 - an isolated Google Indexing API experiment if it is still required;
-- release annotations.
+- change annotations.
 
 ### Stage 9. Measurement
 
@@ -1780,8 +2063,20 @@ The release should also indicate whether templates or interaction code changed. 
 - citations and referrals;
 - MCP metrics and traces;
 - alerts;
-- SEO/GEO/MCP release diff;
+- SEO/GEO/MCP change diff;
 - ongoing visual and interaction regression monitoring.
+
+### Stage 10. Concealment hardening
+
+- exposure-profile registry for `public_indexable`, `public_noindex`, `private`, and `concealed`;
+- exclusion of protected objects from every public discovery and agent surface;
+- authenticated or private delivery of protected assets and derived artifacts;
+- cache invalidation and no-store policy for protected responses;
+- public-client and source-map concealment audit;
+- enumeration-resistance tests;
+- public-to-private/concealed transition workflow;
+- automated Section C12 concealment verification;
+- Part 07 perimeter and hostname concealment verification where applicable.
 
 ## 30. Definition of Done
 
@@ -1802,9 +2097,9 @@ Implementation is complete only when:
 13. the Action API cannot perform an irreversible operation without confirmation;
 14. publication events update caches, feeds, and notifications;
 15. IndexNow and experimental integrations are never publication dependencies;
-16. CI detects SEO/GEO/MCP regressions before deployment;
-17. CI and release smoke tests detect unintended UI and UX regressions before deployment;
-18. the production smoke test checks source HTML rather than only the browser DOM;
+16. CI detects SEO/GEO/MCP regressions;
+17. CI and production validation detect unintended UI and UX regressions;
+18. production validation checks source HTML rather than only the browser DOM;
 19. visibility is measured together with citations, referrals, and valuable actions;
 20. no defensive mechanism uses prompt injection or data poisoning;
 21. every machine representation of a published revision exposes the same canonical identity, revision, URL, and publication metadata;
@@ -1813,8 +2108,17 @@ Implementation is complete only when:
 24. an Evidence Passage can be retrieved directly by stable ID;
 25. public MCP list and resource operations remain complete through cursor pagination when their result sets can grow;
 26. MCP transport, Origin, CORS, and protocol behavior conform to the supported negotiated revision;
-27. CI performs a real MCP client integration test before release when public MCP is enabled;
+27. CI performs a real MCP client integration test when public MCP is enabled;
 28. a client-side initialization failure cannot remove meaningful server-rendered public content.
+
+29. every `private` object is absent from public discovery, Evidence, public API catalogs, and public MCP surfaces and cannot return protected content before authorization;
+30. every `concealed` object additionally passes the Section C12 absence and leakage checks;
+31. `robots.txt` is never used as the confidentiality boundary and does not enumerate individually concealed paths or secret identifiers;
+32. protected assets, transcripts, previews, generated artifacts, and attachments inherit the protection profile of their parent object unless an explicit reviewed exception exists;
+33. public client artifacts, source maps, route manifests, service-worker manifests, and telemetry do not disclose classified concealed topology or identifiers;
+34. shared caches cannot serve protected responses across authorization boundaries and a public-to-protected transition actively purges stale public representations;
+35. a previously public resource can transition to private or concealed without leaving stale sitemap, feed, `llms.txt`, Evidence, MCP, public API, redirect, or asset exposure;
+36. concealment claims that depend on network, DNS, hostname, certificate, or perimeter behavior also pass the applicable Part 07 concealment audit.
 
 ## 31. Primary technical sources
 

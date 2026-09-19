@@ -166,7 +166,8 @@ not replace total journal retention configuration.
 
 The Settings log view is intentionally compact, updates in real time and never
 renders full stack traces or large JSON payloads. Its visual contract is defined
-by Part 01 section 5.5 and the linked `example settings logs` template.
+by [Part 01 section 10.5.2](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#1052-logs-card)
+and its embedded [Logs reference](./src/example-logs.png).
 
 - The internal stream is at most `460px` high.
 - A desktop row shows outcome, action, target, actor and local timestamp.
@@ -177,8 +178,13 @@ by Part 01 section 5.5 and the linked `example settings logs` template.
 - Secondary columns disappear progressively on narrow layouts.
 - The view requests a bounded page and offers explicit pagination or load-more
   behavior.
-- Live delivery appends only records newer than the current cursor, preserves
-  server order and deduplicates reconnect overlap by stable event ID.
+- The list is newest-first by occurrence time and a stable server sequence/ID
+  tie-breaker. Live delivery merges records newer than its live cursor at the
+  top and deduplicates reconnect overlap by event ID. Loading an older page
+  appends older records at the bottom using a separate older-page cursor.
+- A user reading older rows keeps the same visible anchor when events arrive.
+  When following the newest row, live insertion may keep the view at the top;
+  otherwise expose a bounded new-event notice rather than force a scroll jump.
 - When the page is hidden or transport disconnects, the client pauses active
   rendering and resumes from the last cursor or requests a fresh bounded page.
   It MUST NOT buffer an unbounded hidden-page backlog or duplicate rows.
@@ -187,6 +193,39 @@ by Part 01 section 5.5 and the linked `example settings logs` template.
 
 The retention description states every active count, age, per-file and total
 byte limit in one place.
+
+The `Load older events` action performs one bounded request at a time,
+preserves scroll position and displays loading, retry and end-of-history
+states. A cursor is scoped to the current service and query. A reconnect cannot
+swap the live cursor with the older-page cursor or silently duplicate records.
+Empty, unauthorized, offline/stale and failed results are distinct.
+
+### 12.1.1 Routine Service-Revision Logging Preference
+
+The card's `Log internal-service revision requests` checkbox controls future
+recording of frequent successful/unchanged revision or snapshot-read requests.
+It is a server-side application preference, not a view-only filter. A genuinely
+new profile defaults it off; an existing/restored profile preserves its value.
+Scope the control only to services that actually emit this class of event;
+other services document `N/A` rather than fabricate revision events.
+
+Changing it requires the authenticated operator, commits immediately once
+per explicit toggle and audits the change without recursively auditing every
+poll. Pending state prevents duplicate writes; failure restores the confirmed
+checkbox value and explains the error. Other tabs receive the current setting,
+and a reload cannot silently restore a browser-only value.
+
+Disabled routine recording MUST NOT disable authentication/authorization
+failures, security events, mutations, backup/restore, initialization, scheduling
+changes or update/recovery outcomes. It does not erase earlier records and
+does not relax redaction. Success, unchanged/not-modified, denied and error are
+different outcomes; unchanged is neutral, not a failure.
+
+Routine entries contain bounded metadata such as action, safe route template,
+outcome, actor class, timestamp and correlation ID. Actual resolved values,
+payloads, credentials, bearer headers and one-time challenges never appear.
+This preference belongs in the standard logical backup as operator settings;
+raw logs remain governed by the conditional archive/retention rules.
 
 ### 12.2 Download Authorization And Delivery
 

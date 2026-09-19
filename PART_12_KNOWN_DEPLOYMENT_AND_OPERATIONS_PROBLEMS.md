@@ -255,7 +255,7 @@ credentials или независимой внешней точки, не дол
 | **DATA-06** | Backup pipeline создаёт архив, но не проверяет, что его можно расшифровать, распаковать и восстановить. | Проводить автоматическую structural verification и регулярный restore drill в изолированном окружении. |
 | **DATA-07** | Несколько систем пишут в один storage root без namespace. Имена и retention policies конфликтуют. | Назначать отдельные immutable namespace по проекту, deployment и pipeline; запрещать выход за root. |
 | **DATA-08** | Backup token имеет более широкие права, чем требуется, или общий для нескольких producers. | Выдавать отдельные scoped credentials для export, control и archive operations; поддерживать независимую ротацию и revoke. |
-| **DATA-09** | Расписание backup применено в control plane, но remote agent offline. UI создаёт впечатление, что копии создаются. | Показывать last seen, last successful backup, next due и overdue отдельно; alert строить по факту артефакта, а не только по сохранённому schedule. |
+| **DATA-09** | Расписание backup сохранено из интерфейса сервиса, но агент не применил его или находится offline. UI создаёт впечатление, что копии создаются. | Разделять desired/applied revision, last seen, last successful backup, next due и overdue; alert строить по факту подтверждённого артефакта. При переносе управления из центральной панели сохранить прежнюю политику и оставить одного авторизованного автора, отклоняя устаревшие команды. |
 | **DATA-10** | Второй экземпляр копии существует логически, но находится в том же аккаунте, регионе или failure domain. | Определять независимость технически: отдельные credentials, storage/account/failure domain и проверяемый replication/restore path. |
 
 ## OPS — Эксплуатация, диагностика и документация

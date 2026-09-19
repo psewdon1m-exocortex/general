@@ -50,6 +50,78 @@ not replaced by simulated web UI. Archive validation completes before the
 confirmation can start live mutation. Progress, successful health verification,
 rollback and rollback failure remain explicit in the same operator workflow.
 
+### 13.2 Backup Lifetime During An Application Update
+
+The universal update warning and its save gate are defined in
+[Part 01 section 10.8](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#108-update-dialog-templates)
+and [Part 05 section 34.3](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md#343-mandatory-application-backup-gate).
+They use this Part's standard full logical ZIP. A pre-update export MUST NOT
+omit settings, identities or other required state, substitute a database-only
+dump, or introduce a second incompatible archive format.
+
+The same application-owned builder serves manual download, automatic remote
+backup and update preparation. Each export captures a consistent recovery point.
+Updating uses exactly the ZIP saved by the operator, not a second snapshot
+generated after save confirmation. The operator avoids edits between that
+recovery point and installation; a later rollback may discard newer changes.
+When writers can run concurrently, the application must define and enforce its
+snapshot/write-barrier policy rather than promise zero data loss.
+
+| Stage | Allowed location and lifetime | Required observable result |
+| --- | --- | --- |
+| Standard update export | Bounded application memory or private verified tmpfs while creating/streaming | Authorized complete ZIP with filename, size and SHA-256 |
+| Browser save | Native save stream or temporary browser memory/object URL until save and submission/cancellation | Verified save completion, or a separate explicit saved-copy acknowledgement |
+| Durable manual recovery copy | Operator's computer | Exact saved ZIP kept for the documented recovery window |
+| Accepted application update | Helper process memory until the operation and any automatic recovery terminate | Receipt matches scope, selected version, size, checksum and request ID |
+| Path-based recovery tool | Private verified tmpfs, directory mode `0700`, file mode `0600`, only while that tool runs | Removal in success/error/cancellation cleanup; no fallback to a disk-backed temporary directory |
+| Independent automatic backup | Designated remote backup storage reached through the authorized backup agent | Remote integrity/commit receipt under that pipeline's retention policy |
+| Durable application-host job history | Bounded metadata only | Job/request identity, versions, checksum, size, outcome and non-secret deployment metadata; no ZIP or copied secret-bearing environment |
+
+The two durable destinations for backup archives are the operator's computer
+and designated remote backup storage. Application and helper hosts MUST NOT
+accumulate retained update archives. Installed application data, volumes and
+ordinary runtime configuration remain persistent; this rule does not turn
+service state into temporary memory.
+
+Temporary export data is removed after transfer, failure, cancellation or
+expiry, with bounded startup cleanup for interrupted generation. The helper
+releases in-memory backup bytes at the end of apply/automatic recovery.
+Browser object URLs and archive/receipt references are released after use;
+they MUST NOT enter local storage, indexed databases, service-worker caches,
+analytics or logs. Download/upload responses use authenticated authorization
+and `Cache-Control: no-store`; public proxy caching and secret-bearing request
+body logs are prohibited.
+
+The decoded ZIP ceiling at the privileged update boundary is 128 MiB by
+default. The application export/upload, browser, proxy, helper and restore tool
+must agree on an effective supported ceiling no higher than the smallest
+participating limit. Account for simultaneous buffers, encoding expansion and
+tmpfs use in the memory budget. Compressed size, member count, expansion ratio
+and total uncompressed-size checks remain independent. An oversized ZIP blocks
+the update with a clear reason before mutation; it must not be truncated or
+made acceptable by removing required content.
+
+If tmpfs is required but unavailable or too small, fail before mutation.
+Restrict core dumps and any swapping of secret-bearing memory according to the
+host security profile. Do not silently spill update backups into durable
+temporary files. The automatic backup agent's bounded transfer spool and
+resumable retries are governed by its own lifecycle contract; an in-flight
+spool is not another long-term backup repository and is deleted after verified
+remote commitment.
+
+For a normal uninterrupted failed update, automatic recovery can use the
+in-memory original ZIP. After a helper/host restart, or for a later manual
+rollback, the operator reselects the original saved ZIP. Verify its SHA-256
+against the scoped job before restoring. A historical `rollback_available`
+flag records recovery capability, not the presence of archive bytes on disk.
+Legacy retained update archives are cleaned under the documented migration
+policy only after the operator has been told to preserve needed copies.
+
+An ordinary reboot preserves the installed service and its persistent state;
+it does not require importing backups. Shared-component binary updates skip
+the application ZIP/save gate while preserving their own configuration and
+bindings through a verified upgrade/recovery contract.
+
 ## 14. What A Backup Must And Must Not Contain
 
 ### 14.1 Mandatory Logical State
@@ -61,6 +133,9 @@ A complete logical backup MUST include, when applicable:
 | Identity | Stable IDs, public certificates, fingerprints, status and revocation or deny-list records |
 | Authoritative domain state | Current records, relations, ordering and ownership needed to reproduce behavior |
 | Configuration | Application settings and topology that are not deployment secrets |
+| Operator presentation and recording | Settings-card order, appearance preferences and optional routine service-request logging preference |
+| Automatic backup policy | Per-service/per-pipeline enabled state, interval, kind, stable target/profile reference and revision/provenance needed to reconcile the policy |
+| Functional connection intent | Non-secret scoped bot/Adapter/function selection and binding intent; gateway-owned credentials remain excluded |
 | Authentication continuity | Access-Key verifier or password hashes and parameters only when operator access must remain usable |
 | Protected recoverable material | Ciphertext plus encryption metadata, never an unprotected private value |
 | Compatibility | Backup format, schema version, application version and creation time |
@@ -70,6 +145,24 @@ A complete logical backup MUST include, when applicable:
 Revision history may be included when history itself is part of the product
 contract. Export and restore MUST be symmetric: every advertised restorable
 section is either consumed or explicitly labeled diagnostic-only.
+
+Backup schedules are now authored in the owning service, as specified in
+[Part 09 section 5](./PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md#5-ongoing-neptune-interaction).
+If the authoritative policy is stored through a control-plane backend, the
+service export must obtain that scoped policy consistently or fail explicitly;
+an unavailable dependency is not permission to omit user settings.
+Desired policy and the agent's observed/applied revision are different data.
+Last-run diagnostics may be included as diagnostics, but cannot authorize a
+new command during restore.
+
+Restore preserves the operator's enabled/interval intent for each pipeline.
+Before execution resumes, validate the destination, ownership, enrollment and
+agent-applied policy. Until then show `Restored policy · pending verification`
+with execution paused, not a silently rewritten disabled preference. Reconcile
+and acknowledge one policy revision; do not replay obsolete queued manual runs,
+copy another deployment's schedule ownership or make both the old and restored
+instance writers. A control-plane outage cannot trigger a default 24-hour
+replacement of the saved interval.
 
 ### 14.2 Conditional Content
 
@@ -171,9 +264,11 @@ The field names are a generic example, not a required product namespace.
   extract into a private staging directory with safe generated paths.
 - Sanitize any optional log filename to its basename and extension allow-list.
 
-Build large archives incrementally into a mode-`0600` spool file. Stream rows
-from the database and files from disk. Do not first build every table as a
-list, serialize every member into bytes and then copy the entire ZIP into RAM.
+Build large archives incrementally into a bounded stream or private
+mode-`0600` spool. For the update workflow, any file-backed spool MUST be
+verified tmpfs as specified in section 13.2. Stream rows from the database and
+files from disk. Do not first build every table as a list, serialize every
+member into bytes and then copy the entire ZIP into another RAM buffer.
 
 Reference restore endpoints currently use compressed upload ceilings between
 32 MiB and 128 MiB, and the privileged update path accepts at most 128 MiB of
@@ -192,7 +287,7 @@ flowchart TD
     B --> C["Inspect manifest and archive bounds"]
     C --> D["Verify schema, allow-list and every digest"]
     D --> E["Parse and validate all records without mutation"]
-    E --> F["Create pre-restore snapshot"]
+    E --> F["Prepare transactional rollback or verified RAM snapshot"]
     F --> G["Enter maintenance or write barrier"]
     G --> H["Restore database in one transaction"]
     H --> I["Stage and atomically replace file state"]
@@ -205,12 +300,16 @@ Detailed rules:
 
 1. Require an authenticated operator and an explicit confirmation describing
    replace or merge behavior.
-2. Store the upload in a private spool with a hard compressed-size limit.
+2. Bound the upload in memory or a private spool with a hard compressed-size
+   limit; update recovery uses only the RAM/tmpfs policy in section 13.2.
 3. Validate archive structure, manifest schema, source compatibility, member
    bounds and every digest.
 4. Parse all records into validated, bounded batches before deleting or
    overwriting live state.
-5. Create a fresh pre-restore snapshot and verify its checksum.
+5. Prepare transactional rollback with a complete rollback journal, or create
+   a fresh pre-restore snapshot and verify its checksum. Any snapshot needed
+   during update recovery stays in private verified tmpfs and is cleaned at
+   the operation boundary; it is not another retained ZIP.
 6. Stop concurrent writers or establish a database write barrier.
 7. Restore in dependency order: settings and identities, primary resources,
    relations, derived state, optional history and diagnostics.
@@ -307,11 +406,37 @@ paths and why none can affect persisted state, archive content or restore.
 - [ ] Verify pre-restore snapshot and rollback behavior.
 - [ ] Measure peak RAM and temporary disk against explicit budgets.
 
-## Update workflow clarification — 2026-09-17
+### 17.3 Update Backup Acceptance
 
-For service upgrades, Part 05 sections 29–30 and 35 define the mandatory saved-copy
-ZIP protocol and supersede any earlier permission to retain update archives.
-A transactional restore with a rollback journal may replace a redundant pre-restore
-ZIP; a restore tool that requires a snapshot must keep it in temporary RAM storage
-for the operation, never as a retained application-host archive. Helper updates
-use the same discovery/status overlay without a user-data backup.
+- [ ] A full saved ZIP restores all promised state through the same recovery
+      contract as a manual/automatic full export; update preparation does not
+      change member inventory or schema.
+- [ ] Cancelled/failed generation and save, missing acknowledgement, expired
+      receipt, changed target and wrong bytes all leave installation blocked.
+- [ ] The accepted bytes match the operator copy exactly; no second export is
+      created during submission or apply.
+- [ ] Authenticated transfer, no-store responses, redaction, effective size
+      limits, peak memory and archive-expansion limits are exercised.
+- [ ] Successful update, rejected update, failed apply, automatic rollback,
+      rollback failure, disconnected download and helper restart leave no
+      retained update ZIP or copied secret-bearing environment on the host.
+- [ ] A matching operator copy enables supported later recovery; a mismatched
+      copy is rejected before mutation. A normal reboot preserves runtime data.
+- [ ] Legacy-retention migration preserves needed job/checksum metadata and
+      cleans only the managed old archive scope after documented preparation.
+- [ ] Shared-component updates skip application backups without losing their
+      configuration, bindings or authenticated recovery controls.
+
+### 17.4 Service-Owned Settings Round Trip
+
+- [ ] Export/restore preserves card order, recorder preference, functional
+      binding intent and every independent backup/mirror enabled/interval policy.
+- [ ] Missing externally persisted schedule policy fails export explicitly;
+      restore does not replace it with defaults or omit a pipeline.
+- [ ] Restored desired policy remains visible while execution awaits scope,
+      destination/enrollment verification and agent acknowledgement.
+- [ ] Reconciliation rejects stale revisions and old manual commands, preserves
+      an active transfer's recovery state and prevents two deployments from
+      executing the same restored ownership simultaneously.
+- [ ] Logical archives contain safe connection intent, not bot/provider tokens,
+      setup codes, client bearer credentials or root-administration material.
