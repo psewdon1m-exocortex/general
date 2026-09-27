@@ -209,8 +209,8 @@ workflow for that scope, as described in Part 09's migration contract.
 
 ## 4. Gryphon Connection
 
-The [before](./src/exampe-bot_connection-before.png) and
-[after](./src/example-bot_connection-after.png) examples define the layout.
+The [before](<./src/example - settings - gryphon/example - settings - gryphon - not connected.png>) and
+[after](<./src/example - settings - gryphon/example - settings - gryphon - сonnected.png>) examples define the layout.
 The old `Bot connection` title MUST be replaced by `Gryphon Connection`
 in every consuming Settings view, navigation/accessibility label and embedded
 operator guide. Product-specific aliases in those PNGs are replaced by the
@@ -218,51 +218,47 @@ current service's real identity.
 
 Every application that consumes the messaging gateway renders this card.
 An application that does not consume it does not render a dummy connection.
-The card contains:
-
-1. **Gryphon gateway** — local socket availability and selected bot identity;
-2. **Service function** — link/change/unlink this application's function;
-3. **Telegram user** — separate binding status and link/revoke controls;
-4. **Gryphon version** — installed version, update availability and verified
-   check/install action through Updater.
+The card contains one **Gryphon bot binding** group: local-agent reachability,
+applied-connection reachability, the selected adapter alias or `none`, and a
+link/change function action. The bot-selection overlay shows paired bots,
+non-secret details for the active adapter and service-scoped unlink.
+Registration, `/link CODE` pairing and shared release checks/updates occur in
+`sudo updater tui` and do not have actions in service Settings.
 
 ### 4.1 Status and action matrix
 
 | State | Required controls |
 | --- | --- |
-| Agent confirmed absent or service unenrolled | `Initialize` opens the scoped initialization overlay; keep function linking disabled |
-| Previously detected agent unreachable | Preserve last-known binding; Retry/View status, not an automatic reinstall |
-| Gateway ready and service enrolled, no function connection | `Link <service> function`; select only a ready registered bot |
-| Service connected, no user binding | `Link Telegram account` and `Unlink <service> function` |
-| Challenge active | Bot username, `/link CODE`, expiry countdown, Copy and Cancel/Revoke |
-| User bound | Stable Telegram identity summary, `Revoke Telegram binding`, and service unlink action |
-| Update available | Verified target version and explicit install confirmation |
+| Gateway confirmed absent or service unenrolled | Keep function linking disabled; show agent reachability as unavailable |
+| Previously detected agent unreachable | Preserve last-known binding and show agent reachability as unavailable |
+| Gateway ready and service unenrolled | Show `Link Gryphon function`; list only paired adapters in the overlay |
+| Service connected | Show the selected alias, `Change Gryphon function`, and service-scoped `Unlink all adapters` in the overlay |
+| Service binding unavailable | Show applied-connection reachability as unavailable; do not imply a verified account |
 
-The link-function overlay lists Gryphon-provided bot aliases and usernames; it
-never asks for or displays a bot token. Linking one service function does not
-implicitly bind a Telegram user. `Link Telegram account` asks the gateway for a
-service-scoped one-time challenge and presents the exact command in a selectable
-monospace field. The UI never claims success until Gryphon reports the bound
-stable Telegram identity.
+The link-function overlay lists Gryphon-provided paired adapter aliases and
+usernames. It never asks for or displays a Telegram API token or `/link` code.
+When the owner selects an adapter, Gryphon automatically applies that adapter's
+verified Telegram account to this service connection. The UI reports success
+only after Gryphon confirms both the connection and its service binding.
+Unlink is a consequential action with consequence text. It removes this
+service's use of the selected adapter without deleting a shared Gryphon
+registration or changing another service's binding.
 
-Unlink and revoke are separate destructive actions with consequence text:
-unlink removes the service's use of the selected bot; revoke removes the
-Telegram identity authorization for that service. Neither operation deletes a
-shared Gryphon bot registration.
-
-Agent initialization and bot/user linking share the overlay geometry in
-Part 01 section 10.9, but remain distinct typed actions with their own
-confirmation and verified postcondition. The shared bot registration itself
-belongs to authorized gateway administration; consumer Settings cannot read
-or collect its bot token. If no ready bot exists, explain the prerequisite
-and expose an approved management destination without inventing a ready bot.
+Adapter registration and first pairing take place only in `sudo updater tui`:
+the operator supplies alias and token, then sends the TUI's one-use `/link CODE`
+in a private chat with the adapter. Consumer Settings cannot read or collect the
+token or issue a code. If no paired adapter exists, explain the TUI prerequisite
+without inventing a ready option. A missing Gryphon instance is installed only
+from the TUI. Existing card and overlay geometry remains the visual reference;
+the controls above define their current behavior.
 
 ## 5. Updates Panel
 
 The [Updates panel](./src/example-updates.png) defines the alignment for application
 version, local update-helper reachability, registry reachability and the
 full-width `Check for updates` action. It represents the application release
-path; shared-component controls identify their own targets separately.
+path; applicable shared-component controls identify their own targets separately.
+Gryphon's card provides the TUI instruction instead of a service-side check.
 Its source canvas is `1610x566px`.
 
 The permanent card contains:
@@ -333,8 +329,8 @@ states against the same measurements and acceptance matrix.
 
 ## 6. Copy, Feedback And Error Recovery
 
-- Use contextually labeled `Initialize`, `Repair Neptune pipelines`, `Link Telegram account`,
-  `Link <service> function`, `Check for updates` and `Install <component>
+- Use contextually labeled `Initialize`, `Repair Neptune pipelines`,
+  `Link Gryphon function`, `Change Gryphon function`, `Check for updates` and `Install <component>
   <version>` consistently.
 - Avoid `Connected` without naming what is connected: gateway, service
   function, Telegram user, archive pipeline and mirror pipeline are different
@@ -359,8 +355,8 @@ narrow viewport:
 - Multi-pipeline backup: both healthy, archive-only, mirror-only and wrong-profile;
 - Schedules: disabled, edited, saving, saved/pending, applied, revision conflict,
   agent offline, run active/retrying, overdue and restored pending verification;
-- Gryphon: unavailable, ready/unlinked, function linked, challenge active, user
-  bound and revoked;
+- Gryphon: unavailable, ready/unlinked, no paired adapter, function linked,
+  user bound and service binding revoked;
 - Wyverne: absent, unreachable, client enrolled, no allowed Adapter, selected,
   function-ready, incompatible and failed; another client's profile is inaccessible;
 - Initialize: preflight, invalid/expired input, installing, reusing, enrolling,
@@ -373,7 +369,7 @@ narrow viewport:
   recheck, rejected, rolled back and rollback failed;
 - keyboard order, visible focus, focus trap/restore, reduced motion and status
   text independent of color;
-- long versions, long bot usernames and sanitized multi-line failures without
+- long versions, long adapter usernames and sanitized multi-line failures without
   overlap, clipping or horizontal scroll;
 - visual comparison against the six linked card templates for palette, borders,
   typography, spacing, row height, action width and responsive composition.
@@ -385,15 +381,17 @@ the ordinary browser workflow and does not replace the required UI controls.
 
 ## 8. Initialize Overlay Workflow
 
-All three connection groups use the
+Neptune and Wyvern use the
 [shared Initialize overlay](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#109-service-initialization-overlays).
-The card action reads `Initialize`; its accessible name and dialog title
-identify the component. Installation, client enrollment, functional binding
-and end-user authorization are separate operations with separate outcomes.
+Gryphon uses its paired-bot selection overlay; installation and registration
+are controlled through `sudo updater tui`.
+Installation, client enrollment, functional binding and end-user authorization
+are separate operations with separate outcomes.
 
 ### 8.1 Preflight And Component Fields
 
-Opening the dialog performs read-only discovery. Show the owning service,
+Opening an applicable initialization dialog performs read-only discovery. Show
+the owning service,
 declared component/profile, observed installed version and whether the
 operation will install a missing instance or reuse an existing instance.
 Do not infer absence from a timeout, denied request or disconnected socket.
@@ -403,7 +401,7 @@ installer block submission with a specific explanation.
 | Component role | Allowed initialization input | Verified initialization result |
 | --- | --- | --- |
 | Backup agent | Empty masked setup code; read-only owner and declared archive/mirror/folder profile | Existing or newly installed daemon is healthy, this service is enrolled, and every required pipeline has the correct scoped source/destination and credentials |
-| Messaging gateway | Server-derived service identity and approved enrollment profile; only fields required by its advertised enrollment protocol | Gateway is healthy and this service's client registration is usable; bot-function and Telegram-account linking remain explicit next steps |
+| Messaging gateway | No service Settings initialization input; direct the root operator to `sudo updater tui` | TUI installs/reuses the shared gateway and enrolls the service client; paired adapter selection remains a separate Settings action |
 | LLM gateway | Server-derived client identity and approved connection profile; allowed Adapter selection only if the enrollment protocol requires it | Gateway is healthy and the scoped client registration is usable; selected Adapter and function readiness are reported separately |
 
 No form accepts arbitrary installation commands, package URLs, another
@@ -413,7 +411,7 @@ Backup setup-code format/expiry is defined in Part 09; an invalid, expired,
 already consumed or wrong-profile code is not a generic network failure.
 Other forms do not invent the same code requirement.
 
-Provider keys and bot tokens stay in their privileged gateway management
+Provider keys and adapter tokens stay in their privileged gateway management
 boundary. A consumer card can display safe aliases, usernames, permitted
 Adapters and its own binding status. It cannot retrieve credentials or list
 other consumers' bindings. Empty fields and retries never erase existing
@@ -446,7 +444,7 @@ submission or dismissal; retain only safe request/job metadata for recovery.
    condition. Keep the result until Done/Close and refresh the originating card.
 
 Initialization does not create an application update backup, enable a schedule,
-start a remote backup, select an unrelated bot/Adapter, bind an end user or
+start a remote backup, select an unrelated Gryphon or Wyvern adapter, bind an end user or
 update an already installed component implicitly. An incompatible installed
 version uses the separate verified component-update workflow before enrollment
 can proceed. Actual installation uses the approved signed lifecycle path.

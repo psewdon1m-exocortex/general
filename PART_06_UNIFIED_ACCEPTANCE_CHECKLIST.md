@@ -138,10 +138,11 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
       Written corrections to illustrative labels/data take precedence.
 - [ ] Every applicable interface and embedded guide uses the canonical
       Gryphon Connection title. Unused integrations have no dummy ready card.
-- [ ] All three Initialize actions use Part 01 section 10.9's common overlay
-      family, adapted only through an approved theme; states and necessary
-      controls remain equivalent on narrow screens, at 200% zoom and by keyboard.
-- [ ] Application and consumed-component update dialogs match all six embedded
+- [ ] Neptune and Wyvern Initialize actions use Part 01 section 10.9's common
+      overlay family. Gryphon's corresponding card control directs the operator
+      to `sudo updater tui` and makes no lifecycle request. All necessary
+      controls remain usable on narrow screens, at 200% zoom and by keyboard.
+- [ ] Applicable application and consumed-component update dialogs match all six embedded
       Part 01 section 10.8 examples: measured dimensions, font roles, colors,
       spacing, close/warning controls, responsive layout and required progress.
 - [ ] Reference-image names/versions are replaced by actual scoped data;
@@ -273,7 +274,8 @@ Record behavior for every declared archive, mirror or folder pipeline.
 ### 38.1 Shared-Agent Initialization Acceptance
 
 Use the [Initialize workflow](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md#8-initialize-overlay-workflow)
-for every consuming application and each declared integration.
+for applicable Neptune and Wyvern integrations. Gryphon's service card directs
+the operator to the root TUI and does not submit initialization.
 
 - [ ] Opening Initialize performs read-only preflight. Cancel before submit
       causes no installation, enrollment, binding or schedule change.
@@ -282,7 +284,7 @@ for every consuming application and each declared integration.
       never causes a duplicate installation.
 - [ ] Test valid, invalid, expired, consumed and wrong-profile enrollment
       input where applicable; verify owner-scope and authorization failures.
-      No consumer form collects bot/provider secrets or a shared admin token.
+      No consumer form collects adapter/provider secrets or a shared admin token.
 - [ ] Double submit, concurrent consumers, helper restart and lost acceptance
       response preserve one shared instance and one scoped operation.
       Existing clients and healthy pipelines retain their configuration.
@@ -295,9 +297,9 @@ for every consuming application and each declared integration.
 - [ ] Initialize does not enable schedules, start backups or bind a function/
       user implicitly. A separately required component update uses the common
       update flow; it is not hidden inside enrollment.
-- [ ] Messaging function link, Telegram-user challenge and revoke/unlink have
-      separate scope and outcomes. No ready bot is invented; challenges expire
-      and only authoritative identity verification marks the user bound.
+- [ ] Gryphon pairing uses one TUI `/link` challenge for the adapter owner.
+      Service function selection applies that verified account automatically;
+      revoke/unlink has service scope. No unpaired adapter is offered as ready.
 - [ ] LLM client enrollment, allowed Adapter selection and function readiness
       are distinct. Failed probes preserve binding; stale changes cannot
       overwrite newer configuration or alter another client's Adapter.
@@ -332,7 +334,7 @@ for every consuming application and each declared integration.
 - [ ] The manifest binds role, version, artifact digest and compatibility.
 - [ ] The updater independently resolves artifacts and cannot receive arbitrary
       URLs, images or commands from the web application.
-- [ ] Update discovery occurs in an overlay and cannot initiate installation;
+- [ ] Browser update discovery occurs in an overlay and cannot initiate installation;
       Apply appears only after a newer release passes provenance and
       compatibility checks.
 - [ ] Before application mutation, the exact standard full ZIP is saved on the
@@ -358,16 +360,18 @@ for every consuming application and each declared integration.
 ### 39.1 Universal Update Workflow Acceptance
 
 This matrix applies to every current/future application and consumed shared
-component. Use the authoritative
+component's supported update surface. Gryphon uses the root TUI for discovery
+and installation; its service Settings card has no update operation. Use the authoritative
 [visual ledger and embedded examples](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#108-update-dialog-templates),
 [backup lifetime](./PART_03_BACKUP_AND_RECOVERY.md#132-backup-lifetime-during-an-application-update)
 and [behavior contract](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md#34-operator-update-ui).
 A checked item requires recorded evidence; these requirements are not claims
 that an arbitrary existing implementation has passed.
 
-- [ ] Opening `Check for updates` opens the overlay immediately and sends one
-      discovery request. `Check again` sends a fresh request; repeated clicks
-      and stale/out-of-order responses do not duplicate work or change target.
+- [ ] On a browser update surface, opening `Check for updates` opens the overlay
+      immediately and sends one discovery request. `Check again` sends a fresh
+      request; repeated clicks and stale/out-of-order responses do not duplicate
+      work or change target. Gryphon's root TUI performs the equivalent check.
 - [ ] Test no newer version, a valid newer version, incompatible version,
       unknown installed version, offline source, unauthorized request, bad
       provenance, unavailable helper and unsupported protocol independently.
@@ -376,8 +380,9 @@ that an arbitrary existing implementation has passed.
       and exact-target binding reject draft/prerelease, downgrade, wrong
       component and same-version replacement. The helper independently verifies
       the signed manifest and actual artifact bytes before mutation.
-- [ ] All consumed agents, including the update helper, have their own scoped
-      Settings controls. Application and component versions remain distinct;
+- [ ] Consumed agents have their applicable scoped Settings controls; Gryphon's
+      existing visual group directs the operator to the root TUI and cannot
+      start check/install. Application and component versions remain distinct;
       unused components do not receive fabricated ready/update cards.
 - [ ] Application Install opens the mandatory full-ZIP warning. Cancel/Close
       before submission leaves the running application unchanged. Creating the
@@ -456,11 +461,15 @@ that an arbitrary existing implementation has passed.
 - [ ] Final archives and image layers pass secret and high-risk-file scanning.
 - [ ] Deployment injects runtime secrets without printing substituted
       configuration or packaging secrets into artifacts.
-- [ ] The messaging gateway alone stores bot tokens and owns provider webhooks;
+- [ ] The messaging gateway alone stores adapter tokens and owns provider webhooks;
       consuming services receive only service-scoped credentials and expose authenticated
       command adapters.
-- [ ] Bot registration, service-function linking and Telegram-user binding are
-      tested as separate scopes; unlink/revoke affects only the selected scope.
+- [ ] Gryphon adapter registration and one-time `/link` pairing work through the
+      root TUI; service Settings lists only paired adapters and grants the paired
+      account on selection, without requesting another code. Unlink/revoke
+      affects only the selected service scope.
+- [ ] Gryphon release check/update is available without service selection only
+      in the root TUI; service-side lifecycle and update requests are denied.
 - [ ] Access Key change requires current proof, two exactly matching explicitly
       supplied replacement entries and revokes other sessions; it applies no
       password-strength or value-shape policy. Control-plane token rotation is
@@ -480,9 +489,9 @@ that an arbitrary existing implementation has passed.
       verification headers are discarded.
 - [ ] Unknown automation is observed, rate-limited, challenged and blocked by
       measured policy; prompt injection and data poisoning are never defenses.
-- [ ] When a Telegram connection is in scope, bot-token authentication and
-      operator binding are separate; the link code is short-lived, single-use
-      and consumed transactionally.
+- [ ] When a Telegram connection is in scope, adapter credential validation
+      and owner pairing are separate; the TUI link code is short-lived,
+      single-use and consumed transactionally.
 - [ ] Every Telegram command and callback is authorized by stable identity;
       unlinking and rotation revoke access and are audited.
 

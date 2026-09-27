@@ -877,15 +877,19 @@ mutation shows pending feedback and a final outcome.
 ### 5.5 Settings Information Architecture
 
 The references are [example settings main](<./src/example settings main.png>),
+the [Appearance card crop](<./src/example - settings - appearance/example - settings - appearance - 1.png>) and
+[Appearance on the source canvas](<./src/example - settings - appearance/example - settings - appearance.png>),
+the [basic Security card](<./src/example - settings - securite/example - settings - securite - basic.png>),
+the [advanced Security card](<./src/example - settings - securite/example - settings - securite - advanced.png>),
 [Backup](./src/example-backup.png), [Updates](./src/example-updates.png) and
 [Logs](./src/example-logs.png). The connected-service references are
-[Gryphon Connection before binding](./src/exampe-bot_connection-before.png),
-[Gryphon Connection after binding](./src/example-bot_connection-after.png) and
+[Gryphon Connection before binding](<./src/example - settings - gryphon/example - settings - gryphon - not connected.png>),
+[Gryphon Connection after binding](<./src/example - settings - gryphon/example - settings - gryphon - сonnected.png>) and
 [Wyverne Connection](./src/example-wyverne.png).
-All six card examples are embedded and measured in
-[section 10.5](#105-settings-templates). Their states, controls and ownership
-boundaries are defined in
-[Service Agents: UI And Operator Workflows](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md).
+The Backup, Updates, Logs and connected-service card examples are embedded and
+measured in [section 10.5](#105-settings-templates); the Appearance and Security
+crops are specified below. Their states, controls and ownership boundaries are
+defined in [Service Agents: UI And Operator Workflows](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md).
 
 Settings is a primary destination and every service provides these full-width
 `4x` sections:
@@ -903,7 +907,8 @@ small named groups. Security, persistence and external behavior controls
 include a concise consequence or recovery hint.
 
 The supplied Settings main template has these exact global measurements at the
-reference viewport:
+reference viewport. Its Security coordinates describe the basic two-group card;
+the Volt variant grows to fit its additional groups:
 
 | Element | Reference geometry or text origin |
 | --- | --- |
@@ -950,13 +955,30 @@ after `Apply color`, as defined in section 2.1.
 
 #### Appearance
 
-Appearance contains:
+The two Appearance images show the same card: one tight crop and one on a
+magenta source canvas. The magenta area is outside the card and is not a Shell
+background or theme token. With the fixed `250px` sidebar at the reference
+viewport, the black, square-cornered card is `1610x401px`, with a `55px`
+header, white outer border and `#CCCCCC` header divider. Its body has two
+visible groups in this order:
 
-- a color swatch linked to a text field containing a normalized six-digit hex
-  value;
-- `Reset color` and `Apply color` controls;
-- the persisted sidebar mode: fixed open or auto-hide/reveal from the left
-  activation edge.
+1. **Color correction** — the description reads “Changes preview immediately
+   and apply to both authenticated views and sign-in.” A `40x40px` swatch frame
+   contains a `24x24px` color square. A `326x40px` hex field, `Reset color` and
+   `Apply color` follow on the same row with `20px` gaps at desktop width.
+2. **Left menu position** — the description reads “Reveal the Sidebar from the
+   edge or keep it fixed on wide screens.” The labeled checkbox selects
+   “Auto open and hide sidebar on mouse hover”; checked means auto-hide and
+   unchecked means fixed-open. The change persists when the toggle succeeds;
+   failure restores the previous value.
+
+The second heading starts about `64px` below the color row. The checkbox frame
+is `20x20px` with a `10x10px` white selected mark and at least a `40px` labeled
+target (`44px` for coarse pointers). On narrower screens, the four color
+controls wrap in their original order and the card grows to fit. Error text
+also grows the card; `401px` is the baseline reference height, not a clipping
+limit. Service-specific preferences, such as Mastermind's Activity timezone,
+belong in separate Settings cards so they do not extend Appearance.
 
 In the reference Appearance section, the color row uses:
 
@@ -978,9 +1000,42 @@ In the reference Appearance section, the color row uses:
 
 The color field accepts exactly `#RRGGBB`, normalizes case for display, rejects
 invalid or incomplete input without changing the persisted token and previews
-only a valid value. Black, white, hover, success and danger are not editable.
+only a valid value. `Reset color` previews `#00A8FF`; only `Apply color` commits
+the preview. Black, white, hover, success and danger are not editable.
 
 #### Security And Control-Plane Connection
+
+The [basic Security card](<./src/example - settings - securite/example - settings - securite - basic.png>)
+contains two groups: Access Key rotation and the service's actual external
+connection. The first group has a `326x40px` overlay action. The connection
+group has a `326x40px` URL control beside a full-width, `40px` public status
+row, then one full-width, `40px` token action. At the reference width the
+basic card is `1610x418px`; the groups are separated by about `46px` after
+the first action. The
+[Access Key overlay](<./src/example - settings - securite/example - settings - securite - change overlay window.png>)
+has a `620px` maximum width, `55px` title row, `24px` body inset, three
+empty masked fields and a right-aligned submit action. Its title is `Security`.
+
+Chronos and Mastermind use the basic variant with `Connection with Kernel`.
+Kernel also uses the basic layout, but its second group is `Connection with
+Volt`: it edits only the Volt URL and the write-only `VOLT_KERNEL_TOKEN` used
+by Kernel to resolve `volt://` values. Kernel does not display a connection to
+itself. The [advanced Security reference](<./src/example - settings - securite/example - settings - securite - advanced.png>)
+shows Volt's two separate connection groups beneath Access Key. The implemented
+Volt card adds `Trash retention` immediately after Access Key, making four
+groups in order: Access Key, `Trash retention`, `Connection with Kernel` for
+the outbound `KERNEL_SERVICE_TOKEN` used to query Register, and `Volt - Kernel
+secure channel` for the inbound `VOLT_KERNEL_TOKEN` accepted by Volt's resolver.
+These are independent credentials. The inbound channel shows `Volt internal
+resolver` and its token configuration state; it has no second editable Kernel
+URL, even though the reference uses a URL-shaped field for this row.
+
+The Volt retention group states that its period applies to entities already in
+trash and that shortening it may permanently delete older entities immediately.
+It has one `Retention, days` numeric field beside `Save`. Only whole numbers
+from 1 to 365 are accepted. `Save` is unavailable while the value is unchanged
+or a save is pending. A shorter period requires confirmation before applying
+it to existing trash; the result reports any entries permanently deleted.
 
 The Access Key is changed only in a custom overlay containing the current key,
 the new key and confirmation of the new key. All fields begin empty. The action
@@ -993,7 +1048,7 @@ The current field uses `autocomplete="current-password"`; both new-key fields
 use `autocomplete="new-password"`. The UI never reveals either stored verifier
 or current key.
 
-The control-plane connection group contains:
+Each outbound control-plane connection group contains:
 
 - an editable control-plane base URL or authority URL;
 - the resolved public control-plane identity or role when available;
@@ -1008,9 +1063,14 @@ and the failure is shown.
 
 The control-plane token is a write-only secret. Its overlay accepts a replacement but
 never preloads, echoes or returns the current token. The server stores it in the
-approved secret boundary, validates it against the selected control plane, activates
-it atomically only after success, audits the rotation without the value and
-keeps or restores the previous credential when validation fails.
+approved secret boundary. An outbound replacement is validated against its selected
+control plane and activated atomically only after success; failed validation keeps
+the previous credential. Rotation is audited without the secret value.
+Volt validates a replacement outbound `KERNEL_SERVICE_TOKEN` against Kernel
+Register at the displayed URL before activating either a new URL or token;
+the stored value is encrypted, omitted from
+logical backups, and never returned to the browser. Rotation of Volt's inbound
+`VOLT_KERNEL_TOKEN` changes only the credential checked by its resolver.
 
 #### Backup
 
@@ -1046,13 +1106,17 @@ Every application consuming the LLM gateway uses the requested display title
 `Wyverne Connection`. These display labels do not rename executable, API,
 repository or configuration identifiers.
 
-Each card separates agent availability, service/client enrollment, functional
-binding and any user authorization. `Initialize` provisions or attaches the
-shared agent for this service; it does not silently link an unrelated function,
-authorize a user or replace a provider Adapter. A ready shared instance is reused.
-Its own version and check-for-update action remain a separate group.
-Initialization, function linking and revocation use the overlay family in
-section 10.9 and the [Part 10 state matrix](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md).
+The Gryphon card has one `Gryphon bot binding` group. It shows local agent and
+applied-connection reachability, the applied bot alias or `none`, and one
+`Link Gryphon function` / `Change Gryphon function` action. That action opens
+the bot-selection overlay; choosing a ready, paired bot applies its verified
+Telegram account to this service immediately. Each service has one selected bot,
+and the same bot can be selected again to restore a revoked service binding.
+Bot registration, the one-time Telegram `/link CODE` pairing, and shared
+Gryphon version checks/updates use `sudo updater tui`; these controls are
+absent from service Settings. The service card never issues another `/link`.
+Neptune and Wyvern retain their applicable scoped Initialize workflows.
+Function linking and revocation follow the [Part 10 state matrix](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md).
 
 #### Updates
 
@@ -2486,10 +2550,11 @@ remain normative even when they are not repeated in every entry.
 
 ### 10.5 Settings Templates
 
-The six embedded card exports below replace the retired backup, messaging,
-updates and isolated Settings-card images. Their ordinals are examples;
+The card exports below define the current Settings layouts. The newer Security
+and Gryphon crops linked in sections 5.5 and 10.5.5 take precedence over older
+settings canvases for those cards. Their ordinals are examples;
 actual values follow the persisted card order. Application names, versions,
-bot usernames, adapter providers and routes inside the PNGs are illustrative.
+adapter usernames, provider names and routes inside the PNGs are illustrative.
 The explicit `Gryphon Connection` and `Wyverne Connection` display labels
 are required where those components are consumed.
 
@@ -2510,7 +2575,8 @@ and observation responsibilities but no competing schedule authoring surface.
   appears at `y=54px`, which is the accepted one-pixel border tolerance. The
   adaptive ordinal starts at `left: 14px` relative to the card and the accent
   title at `left: 39px`. The complete global ledger is in section 5.5.
-- Appearance body uses the exact control coordinates in section 5.5. Color
+- The two Appearance references show the same `401px` baseline card. Its two
+  groups and exact control coordinates are defined in section 5.5. Color
   correction places a swatch, hex field, Reset and Apply actions on one
   controlled row at desktop width; they wrap in that order before collision.
 - Accent changes preview immediately. Only Apply persists. Sidebar-mode toggle
@@ -2540,7 +2606,7 @@ and observation responsibilities but no competing schedule authoring surface.
 | Body / labels / controls | `14px/22px` Consolas Regular; Bold only for emphasis/important values |
 | Secondary copy | `--white-80`, rendered `#CCCCCC`; never opacity applied to the complete card |
 | Body insets | Reference `39px` left and about `33px` right; approximately `27–30px` from header divider to first heading |
-| Text/action rhythm | `8px` heading-to-copy gap, `20px` copy-to-action gap; `38–48px` between semantic groups |
+| Text/action rhythm | `8px` heading-to-copy gap, `20px` copy-to-action gap; ordinarily `38–48px` between semantic groups, with the Appearance color-row-to-heading gap measured separately in section 5.5 |
 | Ordinary action | `326x40px`, black fill, nested border, `18px` inline padding; longer labels grow/wrap without truncation |
 | Status row | Full content width, `40px` minimum height, `16px` inline padding, `12px` text-to-indicator gap |
 | Status indicator | `18x18px` square; `#62FF8C` healthy, `#F83D3D` failed, neutral secondary white for unknown/stale |
@@ -2674,35 +2740,33 @@ which starts discovery; only an application update has the full-ZIP save gate.
 
 #### 10.5.5 Gryphon Connection Before And After Binding
 
-![Gryphon Connection before a service function is linked](./src/exampe-bot_connection-before.png)
+![Gryphon Connection before a service function is linked](<./src/example - settings - gryphon/example - settings - gryphon - not connected.png>)
 
-Source: `1610x483px`. The status row is approximately `1538x40px` at
-`(39,158)`; link and component-update actions are `326x40px` at
-`(39,230)` and `(39,382)`.
+![Gryphon Connection after a service function is linked](<./src/example - settings - gryphon/example - settings - gryphon - сonnected.png>)
 
-![Gryphon Connection after a service function and user are linked](./src/example-bot_connection-after.png)
+Both cards have one `Gryphon bot binding` group, two full-width `40px` status
+rows, the applied connection name, and one `326x40px` action. A ready agent
+and an absent applied connection show `Link Gryphon function`; a connected
+service shows `Change Gryphon function`. The selected bot's safe alias is
+visible without exposing its API token or Telegram identity secrets. The
+permanent card has no registration, Telegram pairing, version or unlink action.
 
-Source: `1602x545px`; card `1582x527px` at `(8,10)`. The status row
-is `1504x40px` at `(47,168)`; unlink and component-update actions are
-`326x40px` at `(47,273)` and `(47,458)`. Those controls preserve the
-same `39px` card-local left inset. The greater height accommodates connected
-identity and user-binding status. The teal accent is an example configured
-accent, not a separate hardcoded after-connection theme.
-
-Both cards MUST be titled `Gryphon Connection`, replacing the old title in
-the raster. Group order is gateway/function binding, separate Telegram-user
-binding where relevant, then component version. An absent or unenrolled agent
-offers `Initialize` using section 10.9; a healthy enrolled agent offers
-`Link <service> function`. After linking, show the actual bot's safe
-alias/username and `Unlink <service> function`. Do not show a bot token.
-
-`Telegram account linked` is shown only after a separate verified user
-authorization, not merely after selecting a bot. Use `Link Telegram account`
-for that challenge flow so the service-initialization action is unambiguous.
-Revoking user authorization and unlinking a service function are separate
-consequential confirmations; neither deletes the shared bot or another
-application's binding. The version/check action remains available in its own
-group before and after linking, subject to actual permissions/reachability.
+The [unconnected selection overlay](<./src/example - settings - gryphon/example - settings - gryphon - connection choice overlay - not connected.png>)
+lists ready bots paired through Gryphon, or points the operator to
+`sudo updater tui` when none are available. Selecting a bot applies its
+already verified Telegram account to this service without another code or
+confirmation step. One bot is selected per service; other service bindings
+are independent. The
+[connected overlay](<./src/example - settings - gryphon/example - settings - gryphon - connection choice overlay - connected.png>)
+highlights the active bot, shows non-secret adapter details alongside the bot
+list, and offers `Unlink all adapters`. A selected bot that is no longer ready
+may be shown for context but cannot be applied until ready. Re-selecting a
+ready active bot can restore a revoked service binding. Unlink requires
+confirmation and removes this service's binding only; shared bots and other
+services remain connected. The desktop overlay is about `760px` wide with a
+`55px` title row and approximately `52px` bot rows; its list and detail panes
+stack on narrow screens. Bot registration, `/link CODE`, and shared version
+management remain in Updater TUI.
 
 #### 10.5.6 Wyverne Connection
 
@@ -3180,9 +3244,10 @@ The functional gate is
 
 ### 10.9 Service Initialization Overlays
 
-The `Initialize` actions in Gryphon Connection, the automatic-backup group
-and Wyverne Connection use one overlay family. This is a specification for
-states absent from the six card PNGs; its visual basis is the update warning
+The applicable `Initialize` actions in the automatic-backup group and Wyverne
+Connection use one overlay family. Gryphon Connection uses the bot-selection
+overlay described in section 10.5.5. This is a specification for
+states absent from the static card PNGs; its visual basis is the update warning
 and running-job panels in section 10.8. It does not introduce another theme.
 Component-specific fields and postconditions are defined in
 [Part 10 section 8](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md#8-initialize-overlay-workflow).
@@ -3237,7 +3302,7 @@ excluded from URLs, browser persistence, diagnostics and analytics. Use
 `autocomplete="off"`, disable spellcheck and autocapitalization for opaque
 codes, and treat paste as input data. A keyboard-operable temporary reveal
 control may be used without changing field width. The clear action follows
-the shared input contract. Provider and bot tokens do not belong in ordinary
+the shared input contract. Provider and adapter tokens do not belong in ordinary
 consumer initialization forms.
 
 Required/invalid fields show an inline explanation associated with the control.

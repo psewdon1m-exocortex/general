@@ -7,9 +7,16 @@ backup, update and security Parts with the concrete Exocortex topology.
 
 This Part supersedes every former direct-connection compatibility note. Gryphon
 is the single Telegram gateway: consuming services MUST NOT embed their own
-Telegram polling or webhook runtime and MUST NOT store a bot token as an
+Telegram polling or webhook runtime and MUST NOT store an adapter token as an
 application setting. Updater, Neptune, Gryphon and Wyvern ownership, trust and operator
 flows are defined only in Parts 09 and 10.
+
+In the Gryphon workflow, **adapter** means one Telegram integration registered
+with Gryphon. Its Telegram API token and username are provider details, not a
+separate per-service connection. A **service command adapter** is the authenticated
+endpoint exposed by Chronos, Saturn or Mastermind for Gryphon to invoke; it is
+distinct from the registered adapter selected in Settings. Existing API field
+names such as `botId` remain protocol identifiers.
 
 This Part is subordinate only to the [Part 00 documentation authority](./PART_00_SYSTEM_UNIFICATION_SPECIFICATION.md) and takes precedence over conflicting project-local documentation.
 
@@ -64,19 +71,19 @@ production deployment.
 | --- | --- | --- | --- |
 | Updater | One root-owned daemon per Linux host | Performs allow-listed privileged installation, enrollment and verified update jobs | Kernel, Volt, Chronos, Saturn, Neptune, Gryphon |
 | Neptune Linux | One unprivileged `neptuned` daemon per Linux host | Exports module-owned recovery archives and optional dedicated mirrors to Saturn | Kernel, Volt, Chronos, Saturn; future approved modules |
-| Gryphon Linux | One gateway service per deployment | Owns Telegram bot tokens, webhooks, update deduplication, callbacks and service-scoped bindings | Chronos and Saturn |
+| Gryphon Linux | One shared gateway service/version per Linux host | Owns registered adapter credentials, webhooks, update deduplication, callbacks and service-scoped bindings | Chronos, Saturn and Mastermind |
 | Wyvern | One shared unprivileged gateway per Linux host, or explicit remote HTTPS instance | Owns provider Adapters, keys, request transport and media handles; consumer domains retain prompts, jobs and commits | Mastermind, Laboratory |
 | Saturn | Central control plane and storage gateway | Issues single-use setup codes, enforces storage identity/quotas, receives archives/mirrors and may relay service-owned policy/commands; no central schedule editor | All Neptune deployments |
 
 An application web process MUST NOT receive `sudo`, a Docker socket, the Gryphon
-administrative socket or arbitrary command execution. UI actions call the
-application backend; the backend calls the local Updater through its Unix socket
-using the token for that registered service. Updater independently selects the
-approved installer, repository, artifact and service profile.
+administrative socket or arbitrary command execution. Service UI actions call
+the application backend with its own scoped identity. Gryphon installation,
+adapter registration and shared release checks/updates are root operator actions
+through `sudo updater tui`; they are not service Settings actions.
 
 ## 2. Trust And Communication Topology
 
-The host operator may also use `sudo updater tui`. This console is bundled
+The host operator uses `sudo updater tui` for shared Gryphon management. This console is bundled
 with Updater and controls the current host's Updater, Neptune, Gryphon and
 Wyvern. It uses a separate root-owned mode-`0600`
 Unix socket at `/run/exocortex-admin/updater.sock`. That directory is not mounted
@@ -84,23 +91,29 @@ into consuming service containers. Linux peer credentials must additionally
 identify UID 0. Shared Wyvern updates and management require root operator
 dispatch; service tokens can install/reuse Wyvern and link only their own
 registered head. The service socket and its per-head tokens retain their existing
-scope; the operator facade selects a registered head, validates a typed action
-and delegates using the daemon-owned head credential. It must not forward an
+scope; the operator facade selects a registered head only for actions that
+require one. Shared Gryphon release checks/updates and adapter registration do
+not take a service selection. The facade validates a typed action and delegates
+using the daemon-owned credential. It must not forward an
 arbitrary path, shell command or executable supplied by the terminal.
 
 The systemd runtime-directory declaration preserves both socket directories.
 The console is a separate process from the daemon, holds no persistent secrets
 or authoritative application state, and reconnects to durable job metadata
 after a transport failure or daemon self-update. Read-only local diagnostics
-remain available when the operator API is down. Enrollment codes and bot tokens
-are transient masked input. Schedule ownership, bot/service/user trust
+remain available when the operator API is down. Enrollment codes and adapter tokens
+are transient masked input. Schedule ownership, adapter/service/user trust
 decisions, signed releases and rollback rules remain as specified below.
 
 ```text
 browser
   -> authenticated module API
-     -> /run/exocortex/updater.sock + per-head token
-        -> allow-listed Neptune/Gryphon install, enroll or update job
+     -> /run/exocortex/updater.sock + per-head token for permitted Neptune work
+     -> /run/gryphon/client.sock + service credential for adapter selection
+
+root operator -> sudo updater tui -> /run/exocortex-admin/updater.sock
+  -> shared Gryphon install/check/update and adapter registration
+  -> /run/gryphon-admin/admin.sock for adapter registration/pairing
 
 module backup builder
   <- loopback/private export request from neptuned
@@ -111,8 +124,8 @@ neptuned
 Telegram
   -> public TLS webhook -> Gryphon
 Gryphon
-  -> authenticated Chronos/Saturn command adapter
-Chronos/Saturn
+  -> authenticated Chronos/Saturn/Mastermind command adapter
+Chronos/Saturn/Mastermind
   -> /run/gryphon/client.sock for status, linking and outbound notifications
 ```
 
@@ -183,22 +196,23 @@ the web service. The operator sees a durable terminal job result.
 
 ### 3.3 Gryphon Linux
 
-Gryphon is installed once and owns every Telegram bot token. Saturn Settings
-provides typed installation and bot-registration actions through Updater. The
-web process transiently forwards the operator-provided bot token and clears the
-input; it never persists it or mounts the Gryphon admin socket. The equivalent
-privileged recovery CLI remains:
+Gryphon is installed once per host through `sudo updater tui`. An initial
+installation may select a registered consuming service to obtain Kernel release
+trust/configuration and enroll that service. This is bootstrap metadata, not a
+choice of which service owns Gryphon. Subsequent shared release checks/updates
+and adapter registration do not select a service. Updater verifies that
+registered Gryphon consumers agree on the Kernel release repository URL before
+choosing a release source.
 
-```text
-gryphon bot connect <bot-alias>
-gryphon bot list
-```
-
-The connect operation reads the bot token without echoing it, verifies the bot
-identity with Telegram, registers the webhook and stores a protected Gryphon
-copy. Connected domain services never retain the bot token. Their installers
-provision only `/etc/gryphon/clients/chronos.token` or
-`/etc/gryphon/clients/saturn.token` and mount the service client socket.
+The root operator registers an adapter in the TUI with an alias and Telegram API
+token. Updater forwards the token only to Gryphon's root-only admin socket;
+Gryphon verifies its Telegram identity, registers the webhook and stores a
+protected credential copy. The TUI shows a one-use `/link CODE`, valid for ten
+minutes, for the owner to send in a private chat with that adapter. The adapter
+list shows the verified pairing state. Connected domain services neither
+receive nor store the token; their installers provision only their scoped
+Gryphon client credential and mount the client socket. The old
+`gryphon bot connect` and `gryphon link issue` CLI operations are retired.
 
 Native releases use `gryphon-vMAJOR.MINOR.PATCH` with an
 `exocortex.gryphon.release.v1` manifest. Initial installation extracts a
@@ -371,48 +385,52 @@ that an older deployment's UI or APIs already support it.
 
 ## 6. Gryphon Initialization And Binding
 
-Gryphon has three deliberately separate layers:
+Gryphon has two operator surfaces with different scopes:
 
-1. **Bot registration:** a privileged operator gives a Telegram bot token to
-   Gryphon with `gryphon bot connect`; only Gryphon stores it.
-2. **Service function connection:** the consuming application selects a ready
-   bot with **Link <service> function** inside **Gryphon Connection**. The service
-   receives only its scoped client credential.
-3. **Telegram user binding:** after the function is connected, **Link Telegram
-   account** creates a service-scoped one-time `/link CODE` challenge. The operator
-   sends it in a private chat with the selected bot. Linking one service does not
-   authorize the same Telegram identity for another service.
+1. **Host TUI:** a root operator installs/updates Gryphon, registers an adapter,
+   and pairs one Telegram account with it using the one-use `/link CODE`. Gryphon
+   accepts the code only in a private chat. Pairing is global to that adapter,
+   but does not itself connect any service.
+2. **Service Settings:** the service owner selects a paired adapter with
+   **Link <service> function**. The service backend uses its authenticated
+   Gryphon client socket to create its own connection via
+   `PUT /v1/service/connection`, with the existing `botId` field, fixed command
+   prefix and service command-adapter URL. Gryphon copies the adapter's verified
+   Telegram identity into that service's binding. No new `/link` is requested.
+   The same adapter may be selected independently by several services.
 
-The equivalent emergency CLI operations are:
+Unlinking removes only this service's connection. Revoking its Telegram binding
+removes only this service's authorization. **Link Telegram account** reattaches
+the already verified adapter owner through `PUT /v1/service/binding`; it does
+not issue another code. These actions never delete the shared adapter or alter
+another service's binding. Gryphon continues to authorize commands by service
+scope. The former service-scoped link-challenge endpoint returns `410`.
 
-```text
-gryphon link issue chronos
-gryphon link issue saturn
-```
+Existing service bindings remain in place during upgrade. If every existing
+binding for an adapter has the same Telegram identity, Gryphon can create its
+global pairing automatically. Conflicting identities require a new TUI pairing
+before another service can select that adapter. Roll out Gryphon and Updater
+before the updated service interfaces.
 
-The UI MUST show the selected bot username, code expiry and a copy action. Codes
-are single-use, short-lived and never accepted from group chats. Unlinking a
-service function or Telegram user binding is explicit, audited and immediately
-revokes the corresponding scope without deleting an otherwise shared bot.
-
-Gryphon invokes only authenticated, allow-listed command adapters. Chronos and
-Saturn do not poll Telegram, register webhooks or deduplicate Telegram updates.
+Gryphon invokes only authenticated, allow-listed command adapters. Chronos,
+Saturn and Mastermind do not poll Telegram, register webhooks or deduplicate updates.
 Outbound reminders, summaries and responses go back through the service-scoped
 Gryphon client socket.
 
-Before these bindings, a missing or unenrolled shared gateway is ensured/reused
-by the card's `Initialize` workflow through the typed local helper. Installing
-a daemon, linking a service function and authorizing a Telegram user are
-different actions. The old `Bot connection` card title is retired in favor
-of `Gryphon Connection`; this UI rename does not rename socket/API identifiers.
+If Gryphon is absent or this service's client is not enrolled, Settings shows
+the observed state and directs the operator to `sudo updater tui`. It does not
+start Gryphon installation or adapter registration. The old `Bot connection`
+card title is retired in favor of `Gryphon Connection`; this UI rename does not
+rename socket/API identifiers.
 
 ## 7. Updates
 
 The universal application/shared-component contract is
 [Part 05 section 34](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md#34-operator-update-ui).
 The concrete protocol bindings below do not limit its applicability to a fixed
-list of applications. Every consuming interface follows the same six visual
-references, exact-target confirmation and durable job lifecycle.
+list of applications. Browser update interfaces follow the shared visual
+references, exact-target confirmation and durable job lifecycle. Gryphon uses
+the root TUI for release operations.
 
 ### 7.1 Main applications
 
@@ -425,8 +443,8 @@ backup gate, not release verification or state preservation.
 
 ### 7.2 Neptune and Gryphon
 
-Component checks and installs use typed Updater component endpoints for
-`neptune-linux` and `gryphon-linux`. Updater resolves the approved repository
+Neptune component checks/installs use typed service-facing Updater endpoints;
+Gryphon uses the root-only TUI operator endpoints. Updater resolves the approved repository
 from Kernel Register, selects an exact compatible release, verifies the
 manifest and checksum, stages the artifact, performs the component-specific
 atomic replacement, restarts the component and verifies its Unix-socket health.
@@ -437,16 +455,19 @@ The web client cannot supply a URL, executable path or command.
 | Initialize/repair Neptune profile | `POST /v1/components/neptune-linux/initialize` |
 | Read Neptune initialization result | `GET /v1/components/neptune-linux/initializations/{id}` with the authenticated head identity |
 | Check/update Neptune Linux | `POST /v1/components/neptune-linux/check` / `POST /v1/components/neptune-linux/update` |
-| Check/update Gryphon Linux | `POST /v1/components/gryphon-linux/check` / `POST /v1/components/gryphon-linux/update` |
+| Check/update Gryphon Linux | Root-only `sudo updater tui` → operator `POST /v1/check` / `POST /v1/actions`; no service selection |
 
-These are daemon-local routes. Browser-facing module endpoints proxy only the
-fields required by their UI and never expose the Updater token.
+These are daemon-local routes. Gryphon release operations are available only
+through the root operator socket. Service-facing Gryphon lifecycle/update
+requests are denied. Browser-facing module endpoints do not proxy Gryphon
+check/update actions.
 
-Shared-agent release policy and fleet observation may remain central, while
-each local module panel exposes its approved check/install workflow. This does
-not return backup schedule/run authoring to the central panel. Each consumed agent's version and update controls
-appear in the corresponding Settings card/group of every consuming application;
-the component's topology determines its impact and authorization.
+Shared-agent release policy and fleet observation may remain central. Neptune
+and other components retain their applicable scoped workflows. Gryphon's
+Settings card may keep its existing version/update visual group for layout
+compatibility, but its controls only explain the TUI path and cannot check or
+install a release. This does not return backup schedule/run authoring to the
+central panel.
 
 Updater self-update is a separate binary lifecycle. Updating the executable
 does not by itself replace arbitrary packaging or systemd definitions. Unit or
@@ -459,7 +480,7 @@ Updater release contract explicitly carries and applies them.
   request produces a durable identifier and an audit event without secrets.
 - UI success is based on a terminal job plus refreshed observed state, never on
   HTTP acceptance alone.
-- A setup code, service token, producer token, bot token or `/link` code is
+- A setup code, service token, producer token, adapter token or `/link` code is
   never logged, returned in ordinary status, included in backup or stored in
   browser persistence.
 - Timeouts preserve the job identifier and offer status reload; they do not
@@ -481,8 +502,8 @@ An implementation is complete only when evidence covers:
 - module restart/reconnect during initialization;
 - Volt archive and mirror workers running independently and concurrently;
 - Saturn desired-state retention across temporary loss of connectivity;
-- Gryphon bot registration, service linking and Telegram user binding as three
-  separate authorization decisions;
+- Gryphon adapter registration and one-time TUI pairing, then explicit service
+  selection without a second `/link`; service revoke/unlink remain scoped;
 - token redaction and inability of a service container to access Gryphon admin
   operations or another Updater/Neptune profile;
 - verified component update, health failure and rollback/repair behavior.

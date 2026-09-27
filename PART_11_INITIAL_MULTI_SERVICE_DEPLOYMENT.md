@@ -58,12 +58,13 @@ profile minimum. The root installer
 prepares fixed helper identities, directories, CLI links and systemd unit links
 before starting Updater's restricted service. Healthy existing agents are reused.
 Updater reconciles registered heads automatically: Kernel, Volt and Saturn require
-Neptune, and Saturn also requires Gryphon. Missing helpers are installed once the
-Kernel Register and host release trust are configured. On a completely empty
-infrastructure these dependencies cannot be downloaded before Volt and the Register
-exist; reconciliation retries automatically after they become available. It records
-terminal installation jobs. Saturn enrollment and bot/user consent are completed
-from Settings, independently of installing the daemon.
+Neptune, and Saturn also consumes Gryphon. Neptune reconciliation installs a
+missing eligible helper after Kernel Register and host release trust are ready;
+on an empty infrastructure it retries after Volt and the Register exist and
+records a terminal job. Gryphon installation and adapter registration/pairing
+are completed through `sudo updater tui`; Saturn Settings selects an already
+paired adapter. Initial installation may use Saturn as the registered release
+configuration source, but later Gryphon checks/updates do not select a service.
 Gryphon release bundles include an architecture-specific Node runtime covered by
 the artifact digest and manifest signature.
 

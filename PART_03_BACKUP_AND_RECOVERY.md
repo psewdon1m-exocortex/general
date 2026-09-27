@@ -135,7 +135,7 @@ A complete logical backup MUST include, when applicable:
 | Configuration | Application settings and topology that are not deployment secrets |
 | Operator presentation and recording | Settings-card order, appearance preferences and optional routine service-request logging preference |
 | Automatic backup policy | Per-service/per-pipeline enabled state, interval, kind, stable target/profile reference and revision/provenance needed to reconcile the policy |
-| Functional connection intent | Non-secret scoped bot/Adapter/function selection and binding intent; gateway-owned credentials remain excluded |
+| Functional connection intent | Non-secret scoped Gryphon/Wyvern adapter and function selection plus binding intent; gateway-owned credentials remain excluded |
 | Authentication continuity | Access-Key verifier or password hashes and parameters only when operator access must remain usable |
 | Protected recoverable material | Ciphertext plus encryption metadata, never an unprotected private value |
 | Compatibility | Backup format, schema version, application version and creation time |
@@ -438,5 +438,5 @@ paths and why none can affect persisted state, archive content or restore.
 - [ ] Reconciliation rejects stale revisions and old manual commands, preserves
       an active transfer's recovery state and prevents two deployments from
       executing the same restored ownership simultaneously.
-- [ ] Logical archives contain safe connection intent, not bot/provider tokens,
+- [ ] Logical archives contain safe connection intent, not adapter/provider tokens,
       setup codes, client bearer credentials or root-administration material.

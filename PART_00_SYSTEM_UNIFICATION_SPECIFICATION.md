@@ -200,8 +200,9 @@ Operator decision requested:
   and an external canonical-HTTPS check. A service-specific variation documents
   its reason without moving public ingress into the installer.
 - Parts 09 and 10 are normative for the concrete shared-agent
-  topology. Bot registration, service-function linking
-  and Telegram identity binding remain separate trust decisions.
+  topology. Gryphon adapter registration and one-time owner pairing happen
+  through the root TUI; each service separately selects a paired adapter
+  and receives that verified identity in its own scope.
 - The SEO and GEO guide is additive for public/indexable surfaces. It does not
   authorize a reduced alternate UI or an unapproved redesign.
 - A requirement marked non-applicable MUST include a reason and evidence. It
@@ -408,8 +409,9 @@ Implementation is complete only when:
 - every outgoing push passed the seven-area pre-push impact gate with evidence;
 - CI/deployment secret boundaries and external reachability were tested from
   the applicable trusted and untrusted vantage points;
-- Messaging-gateway bot registration, service-function linking, one-time provider-user
-  binding, authorization and scoped revocation were tested when such a
+- Messaging-gateway adapter registration, one-time owner pairing through the
+  root TUI, service-function linking without another code, authorization and
+  scoped revocation were tested when such a
   connection is in scope;
 - public source HTML, metadata and discovery were tested when SEO/GEO is in
   scope;

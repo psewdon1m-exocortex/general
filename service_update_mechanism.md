@@ -19,7 +19,8 @@
 - **GitHub Releases** — источник квалифицированных релизов
   `<service>-v<MAJOR.MINOR.PATCH>`, manifest, подписи и deployment bundle.
 - **Helper-компоненты** — общий Updater, Neptune, Gryphon и Wyvern. Они
-  обновляются через тот же daemon, но без backup данных приложения.
+  обновляются через тот же daemon, но без backup данных приложения. Gryphon
+  проверяется и обновляется только через `sudo updater tui`.
 - **Mastermind** — особый групповой сервис из Core, Runtime и Worker; для него
   используется потоковый saved-copy protocol и общий writer barrier.
 
@@ -383,13 +384,14 @@ persistent volumes остаются установленными. Копия н�
 ## 7. Обновление общих helper-компонентов
 
 Updater, Neptune, Gryphon и Wyvern являются общими компонентами хоста. Для них
-нет backup gate приложения: они не заменяют данные конкретного сервиса.
+нет backup gate приложения: они не заменяют данные конкретного сервиса. Схема
+ниже описывает разрешённые сервисные UI-потоки; Gryphon из них исключён.
 
 ```text
 Settings → карточка нужного helper
  │
  ├─ POST <service-update-api>/check
- │    {"component":"updater|neptune|gryphon|wyvern"}
+ │    {"component":"updater|neptune|wyvern"}
  │
  └─ Updater: POST /v2/check
       {
@@ -420,6 +422,15 @@ Updater
  ├─ создаёт durable component job
  └─ выполняет component-specific replacement
 ```
+
+Gryphon: один экземпляр и одна версия на хосте. Root-оператор запускает
+`sudo updater tui`, выбирает Gryphon и выполняет общую проверку или установку
+точного подписанного релиза без выбора сервиса. Updater сверяет URL репозитория
+Gryphon из Kernel Register у зарегистрированных потребителей и использует
+root-only operator socket. Запросы проверки и установки Gryphon из Settings
+Saturn, Chronos или Mastermind не выполняются; прежняя визуальная группа
+карточки лишь указывает путь через TUI. Первичная установка может выбрать
+зарегистрированный сервис как источник конфигурации/доверия и для enrollment.
 
 Дальнейшие ветки:
 
@@ -595,7 +606,7 @@ Rollback уже успешно установленной версии Mastermin
 | --- | --- | --- |
 | Kernel | `/api/update-flow/*` | Общий overlay; service + Updater + Neptune |
 | Volt | `/api/v1/update-flow/*` | Общий overlay; service + Updater + Neptune |
-| Chronos | `/api/update-flow/*` | Python-реализация того же saved-copy protocol; также Gryphon |
+| Chronos | `/api/update-flow/*` | Python-реализация того же saved-copy protocol; Gryphon обновляется отдельно через TUI |
 | Laboratory | `/api/update-flow/*` | Общий overlay; Updater + Neptune + Wyvern; offline restore |
 | Saturn | `/operator/updates/flow/*` | Собственный NestJS controller; отдельные api/worker/web images и migration |
 | Perimetr | `/v1/updater/*` | Собственные `check`, `prepare`, `install`, `jobs`, `rollback`; тот же `/v2` Updater protocol |
