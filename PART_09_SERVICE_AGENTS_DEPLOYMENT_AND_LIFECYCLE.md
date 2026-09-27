@@ -37,11 +37,20 @@ work; documenting it does not claim that deployed software already implements it
 
 ### Wyvern integration decision (2026-09-19)
 
+The host operator split adopted on 2026-09-27 supersedes earlier service-card
+lifecycle/update language: Wyvern Adapter administration and shared release
+checks/updates run only through `sudo updater tui`. Laboratory and Mastermind
+Settings select an allowed Adapter for their own functions without initiating
+another release check or provider probe.
+
 The approved Wyvern extension is a shared LLM gateway per host. A consuming
-service installer MUST ensure/reuse the host Updater, then install/reuse one
-compatible Wyvern instance through a typed component operation and enroll only
-its own client. Standalone Wyvern installation uses the same Updater-first
-boundary. Uninstalling a consumer MUST NOT remove the shared gateway or another
+service installer MUST ensure/reuse the host Updater and may reuse/provision its
+signed Wyvern dependency during initial deployment. Routine installation,
+client enrollment, Adapter administration and shared release operations use
+`sudo updater tui`, not a consuming service's Settings. When the runtime is
+absent, TUI installation resolves the latest qualified release from Kernel;
+client enrollment is a later TUI action. Uninstalling a consumer MUST NOT remove
+the shared gateway or another
 consumer's binding. Default data-plane communication uses a local Unix socket;
 a dedicated domain is not required. Cross-host HTTPS is an explicit placement
 choice, not an automatic outage fallback.
@@ -89,11 +98,11 @@ Wyvern. It uses a separate root-owned mode-`0600`
 Unix socket at `/run/exocortex-admin/updater.sock`. That directory is not mounted
 into consuming service containers. Linux peer credentials must additionally
 identify UID 0. Shared Wyvern updates and management require root operator
-dispatch; service tokens can install/reuse Wyvern and link only their own
-registered head. The service socket and its per-head tokens retain their existing
+dispatch; service tokens cannot check, update or install Wyvern. The service
+socket and its per-head tokens retain their existing
 scope; the operator facade selects a registered head only for actions that
-require one. Shared Gryphon release checks/updates and adapter registration do
-not take a service selection. The facade validates a typed action and delegates
+require one. Shared Gryphon and Wyvern release checks/updates do not take a
+service selection. The facade validates a typed action and delegates
 using the daemon-owned credential. It must not forward an
 arbitrary path, shell command or executable supplied by the terminal.
 
@@ -441,10 +450,10 @@ receipt are verified before application mutation; health checks and rollback
 determine the terminal result. Shared-component updates omit this application
 backup gate, not release verification or state preservation.
 
-### 7.2 Neptune and Gryphon
+### 7.2 Neptune, Gryphon and Wyvern
 
 Neptune component checks/installs use typed service-facing Updater endpoints;
-Gryphon uses the root-only TUI operator endpoints. Updater resolves the approved repository
+Gryphon and Wyvern use the root-only TUI operator endpoints. Updater resolves the approved repository
 from Kernel Register, selects an exact compatible release, verifies the
 manifest and checksum, stages the artifact, performs the component-specific
 atomic replacement, restarts the component and verifies its Unix-socket health.
@@ -456,17 +465,39 @@ The web client cannot supply a URL, executable path or command.
 | Read Neptune initialization result | `GET /v1/components/neptune-linux/initializations/{id}` with the authenticated head identity |
 | Check/update Neptune Linux | `POST /v1/components/neptune-linux/check` / `POST /v1/components/neptune-linux/update` |
 | Check/update Gryphon Linux | Root-only `sudo updater tui` → operator `POST /v1/check` / `POST /v1/actions`; no service selection |
+| Check/update Wyvern | Root-only `sudo updater tui` → operator `POST /v1/check` / `POST /v1/actions`; no service selection |
+| Install absent Wyvern | Root-only TUI uses a registered consumer's Kernel release configuration and installs the latest qualified signed release; client enrollment follows separately |
 
-These are daemon-local routes. Gryphon release operations are available only
-through the root operator socket. Service-facing Gryphon lifecycle/update
-requests are denied. Browser-facing module endpoints do not proxy Gryphon
-check/update actions.
+The Wyvern operator sequence is:
+
+1. Register at least one consuming service with Updater. Its scoped Kernel
+   configuration supplies the approved `repositories.wyvern.url`. For a host-wide
+   check or update, Updater reads all registered Wyvern consumers and refuses
+   to offer a release if their repository URLs disagree; the TUI does not ask
+   which service to update.
+2. If Wyvern is absent, choose the TUI installation action. This first install
+   selects a registered consumer only to obtain its Kernel release source,
+   discovers the latest qualified stable release and verifies its signature.
+   It does not enroll that client as a side effect. Without a registered
+   consumer and usable Kernel release configuration, automatic installation
+   cannot proceed.
+3. After installation, connect Wyvern to Kernel and manage Adapter credentials,
+   profiles and client grants in the root TUI. Use its separate service-link
+   action to enroll each consuming client; one host runtime is reused.
+4. In Laboratory or Mastermind Settings, select an Adapter already granted to
+   that client and bind the service's own functions. This does not install a
+   release, perform another release check or send a provider probe.
+
+These are daemon-local routes. Gryphon and Wyvern release operations are
+available only through the root operator socket. Service-facing lifecycle and
+update requests for these gateways are denied. Browser-facing module endpoints
+do not proxy their check/update actions.
 
 Shared-agent release policy and fleet observation may remain central. Neptune
-and other components retain their applicable scoped workflows. Gryphon's
-Settings card may keep its existing version/update visual group for layout
-compatibility, but its controls only explain the TUI path and cannot check or
-install a release. This does not return backup schedule/run authoring to the
+and other components retain their applicable scoped workflows. Gryphon and
+Wyvern Settings cards keep their existing version/update visual groups for
+layout compatibility, but their controls only explain the TUI path and cannot
+check or install a release. This does not return backup schedule/run authoring to the
 central panel.
 
 Updater self-update is a separate binary lifecycle. Updating the executable

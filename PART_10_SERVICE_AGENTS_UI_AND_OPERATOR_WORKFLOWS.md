@@ -14,7 +14,11 @@ The linked raster exports are composition references:
 - [Logs](./src/example-logs.png)
 - [Backup](./src/example-backup.png)
 - [Updates](./src/example-updates.png)
-- [Wyverne Connection](./src/example-wyverne.png)
+- [Wyverne Connection before binding](<./src/example - settings - wyvern/example - settings - wyvern connection - dont connected.png>)
+- [Wyverne Connection after binding](<./src/example - settings - wyvern/example - settings - wyvern connection - connected.png>)
+- [Wyverne Connection error](<./src/example - settings - wyvern/example - settings - wyvern connection - error.png>)
+- [Wyverne Adapter choice before binding](<./src/example - settings - wyvern/example - setting -wyvern - connection choice overlay - not connected.png>)
+- [Wyverne Adapter choice after binding](<./src/example - settings - wyvern/example - setting -wyvern - connection choice overlay - connected.png>)
 - [Gryphon Connection before binding](./src/exampe-bot_connection-before.png)
 - [Gryphon Connection after binding](./src/example-bot_connection-after.png)
 
@@ -371,7 +375,7 @@ narrow viewport:
   text independent of color;
 - long versions, long adapter usernames and sanitized multi-line failures without
   overlap, clipping or horizontal scroll;
-- visual comparison against the six linked card templates for palette, borders,
+- visual comparison against the applicable linked card states for palette, borders,
   typography, spacing, row height, action width and responsive composition.
 
 Application and shared-component updates additionally pass the full
@@ -381,10 +385,11 @@ the ordinary browser workflow and does not replace the required UI controls.
 
 ## 8. Initialize Overlay Workflow
 
-Neptune and Wyvern use the
+Neptune uses the
 [shared Initialize overlay](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#109-service-initialization-overlays).
-Gryphon uses its paired-bot selection overlay; installation and registration
-are controlled through `sudo updater tui`.
+Gryphon uses its paired-adapter selection overlay. Gryphon and Wyvern keep
+their existing cards, while installation and registration/enrollment are
+controlled through `sudo updater tui`.
 Installation, client enrollment, functional binding and end-user authorization
 are separate operations with separate outcomes.
 
@@ -402,7 +407,7 @@ installer block submission with a specific explanation.
 | --- | --- | --- |
 | Backup agent | Empty masked setup code; read-only owner and declared archive/mirror/folder profile | Existing or newly installed daemon is healthy, this service is enrolled, and every required pipeline has the correct scoped source/destination and credentials |
 | Messaging gateway | No service Settings initialization input; direct the root operator to `sudo updater tui` | TUI installs/reuses the shared gateway and enrolls the service client; paired adapter selection remains a separate Settings action |
-| LLM gateway | Server-derived client identity and approved connection profile; allowed Adapter selection only if the enrollment protocol requires it | Gateway is healthy and the scoped client registration is usable; selected Adapter and function readiness are reported separately |
+| LLM gateway | No service Settings initialization input; direct the root operator to `sudo updater tui` | TUI installs/reuses the shared gateway and enrolls the client; the service selects an allowed Adapter separately |
 
 No form accepts arbitrary installation commands, package URLs, another
 service's client identity, shared administrative credentials or unregistered
@@ -472,26 +477,38 @@ consuming service's interface.
 
 ## 9. Wyverne Connection
 
-The [Wyverne Connection example](./src/example-wyverne.png) defines the
-card composition. `Wyverne Connection` is the required display label.
+The [Wyverne Connection state gallery](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#1056-wyverne-connection)
+defines the next card visual target and Adapter-choice overlay. `Wyverne
+Connection` is the required display label. Laboratory and Mastermind keep
+their current card design until a separate UI rollout; the gallery does not
+claim that the new overlay has already shipped.
 The existing Wyvern component/repository/protocol identifiers remain unchanged;
 UI copy is not a migration of executable names, API routes or registry keys.
 
-The groups are gateway identity/reachability, own-client/function connection,
-active allowed Adapter and component version/update. Use the geometry in
-Part 01 section 10.5.6. The example's statement that the messaging gateway
-owns LLM connections is a copy error: the LLM gateway owns provider access.
-The illustrated provider is sample data, not a mandatory default.
+The target card shows gateway reachability, the selected Adapter's observed
+state, its safe name and a function-link/change action; the overlay lists only
+Adapters granted to this client. Use the geometry and state crops in Part 01
+section 10.5.6. The images' statement that Gryphon owns LLM connections is a
+copy error: Wyvern owns provider access. Names and providers are sample data.
 
 | Observed state | Required action and feedback |
 | --- | --- |
-| Confirmed absent or this client unenrolled | `Initialize` using section 8; no fabricated active Adapter |
+| Confirmed absent or this client unenrolled | In the current card, keep `Initialize` as TUI guidance; no service-side installation or enrollment |
 | Previously known gateway unreachable | Last-known identity/binding plus last-seen time; Retry without resetting selection |
-| Client enrolled, no permitted ready Adapter | Explain the prerequisite and expose an authorized current management link; do not ask for a provider key |
-| Ready Adapter available, function unlinked | `Link <service> function`; show only this client's allowed choices and intended function scope |
-| Function linked | Active Adapter alias, own binding and readiness; explicit change/unlink controls |
+| Client enrolled, no permitted ready Adapter | Explain that Adapter administration happens in `sudo updater tui`; do not ask for a provider key |
+| Ready Adapter available, function unlinked | `Link Wyverne function`; show only this client's allowed choices and intended function scope |
+| Function linked | Active Adapter alias, own binding and readiness; explicit change and scoped unlink in the choice overlay |
 | Selected Adapter failed or incompatible | Preserve selection, show the concrete failure and offer retry or an explicit allowed change |
-| Component update available | Separate target/version check and install through the universal shared-component update overlay |
+| Existing component version group | Keep it until the separate card rollout; its check/update control explains the root TUI path and does not start a service-side request. The new state gallery omits this group |
+
+Adapter creation, configuration, grants and shared release checks/updates take
+place in `sudo updater tui` without choosing a service for release operations.
+Laboratory and Mastermind Settings only select from allowed Adapters and bind
+their own functions. Opening Settings or selecting an Adapter sends no provider
+probe or separate release check. The target overlay's `Unlink all adapters`
+removes this service's function bindings only, after confirmation; it does not
+delete an Adapter or revoke another client. Its details pane shows no provider
+keys, secret values or other clients' configuration.
 
 Changing an Adapter or functional binding carries the observed revision and
 stable operation ID. On conflict, refresh and ask for explicit review of the

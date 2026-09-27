@@ -20,7 +20,7 @@
   `<service>-v<MAJOR.MINOR.PATCH>`, manifest, подписи и deployment bundle.
 - **Helper-компоненты** — общий Updater, Neptune, Gryphon и Wyvern. Они
   обновляются через тот же daemon, но без backup данных приложения. Gryphon
-  проверяется и обновляется только через `sudo updater tui`.
+  проверяется и обновляется только через `sudo updater tui` для Gryphon и Wyvern.
 - **Mastermind** — особый групповой сервис из Core, Runtime и Worker; для него
   используется потоковый saved-copy protocol и общий writer barrier.
 
@@ -385,13 +385,13 @@ persistent volumes остаются установленными. Копия н�
 
 Updater, Neptune, Gryphon и Wyvern являются общими компонентами хоста. Для них
 нет backup gate приложения: они не заменяют данные конкретного сервиса. Схема
-ниже описывает разрешённые сервисные UI-потоки; Gryphon из них исключён.
+ниже описывает разрешённые сервисные UI-потоки; Gryphon и Wyvern из них исключены.
 
 ```text
 Settings → карточка нужного helper
  │
  ├─ POST <service-update-api>/check
- │    {"component":"updater|neptune|wyvern"}
+ │    {"component":"updater|neptune"}
  │
  └─ Updater: POST /v2/check
       {
@@ -402,7 +402,6 @@ Settings → карточка нужного helper
 Окно Install <version>
  │
  │ предупреждает, что helper общий для хоста
- │ для Wyvern требуется confirm_shared = true
  │ backup ZIP приложения не создаётся
  ▼
 Backend сервиса
@@ -411,8 +410,7 @@ Backend сервиса
       {
         "head_id":"<registered-head-id>",
         "version":"<exact-version>",
-        "request_id":"<uuid>",
-        "confirm_shared":true   // Wyvern
+        "request_id":"<uuid>"
       }
  ▼
 Updater
@@ -431,6 +429,22 @@ root-only operator socket. Запросы проверки и установки
 Saturn, Chronos или Mastermind не выполняются; прежняя визуальная группа
 карточки лишь указывает путь через TUI. Первичная установка может выбрать
 зарегистрированный сервис как источник конфигурации/доверия и для enrollment.
+
+Wyvern также проверяется и обновляется как одна общая версия на хосте через
+`sudo updater tui`, без выбора Laboratory или Mastermind. Updater сверяет URL
+репозитория Wyvern из Kernel Register у зарегистрированных потребителей.
+Если Wyvern отсутствует, TUI предлагает установку: Updater получает из Kernel
+адрес репозитория, выбирает последнюю доступную квалифицированную версию,
+проверяет подписанный релиз и устанавливает общий runtime. Затем оператор
+подключает Kernel, настраивает адаптеры, предоставляет клиенту доступ и
+отдельным действием привязывает зарегистрированный сервис в TUI. Для первой
+установки выбирается сервис только как источник его конфигурации Kernel;
+сама установка ещё не регистрирует клиента. Если подходящий сервис не
+зарегистрирован или его конфигурация Kernel недоступна, автоматическая
+установка не начинается.
+Карточки Laboratory и Mastermind сохраняют визуальные элементы, но действия
+установки, проверки и обновления Wyvern лишь указывают на TUI. В настройках
+сервис выбирает разрешённый адаптер для своих функций.
 
 Дальнейшие ветки:
 
@@ -607,10 +621,10 @@ Rollback уже успешно установленной версии Mastermin
 | Kernel | `/api/update-flow/*` | Общий overlay; service + Updater + Neptune |
 | Volt | `/api/v1/update-flow/*` | Общий overlay; service + Updater + Neptune |
 | Chronos | `/api/update-flow/*` | Python-реализация того же saved-copy protocol; Gryphon обновляется отдельно через TUI |
-| Laboratory | `/api/update-flow/*` | Общий overlay; Updater + Neptune + Wyvern; offline restore |
+| Laboratory | `/api/update-flow/*` | Общий overlay; Updater + Neptune; Wyvern управляется через TUI; offline restore |
 | Saturn | `/operator/updates/flow/*` | Собственный NestJS controller; отдельные api/worker/web images и migration |
 | Perimetr | `/v1/updater/*` | Собственные `check`, `prepare`, `install`, `jobs`, `rollback`; тот же `/v2` Updater protocol |
-| Mastermind | `/api/owner/updates/*` и `/api/owner/helper-updates/*` | Group preparation, writer barrier, encrypted saved copy и streaming spool |
+| Mastermind | `/api/owner/updates/*` и `/api/owner/helper-updates/*` | Group preparation, writer barrier, encrypted saved copy и streaming spool; Wyvern управляется через TUI |
 
 Типовой набор application-side маршрутов выглядит так:
 

@@ -132,15 +132,17 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
 - [ ] Visual checks cover every linked PNG plus `1919x1034` and `1920x1080` with
       sidebar open/hidden; screenshots contain no overlap or clipped focus.
 - [ ] Every mutation that affects protected state writes an audit event.
-- [ ] Settings matches all six registered Logs, Backup, Updates, Gryphon
-      Connection before/after and Wyverne Connection examples in Part 01
-      section 10.5, including typography, measured spacing, borders and controls.
+- [ ] Settings matches the applicable Logs, Backup, Updates, Gryphon
+      Connection and Wyverne Connection state examples in Part 01 section 10.5,
+      including typography, measured spacing, borders and controls. The newer
+      Wyverne gallery is the target for a separate card rollout; existing
+      Laboratory and Mastermind card visuals remain unchanged until then.
       Written corrections to illustrative labels/data take precedence.
 - [ ] Every applicable interface and embedded guide uses the canonical
       Gryphon Connection title. Unused integrations have no dummy ready card.
-- [ ] Neptune and Wyvern Initialize actions use Part 01 section 10.9's common
-      overlay family. Gryphon's corresponding card control directs the operator
-      to `sudo updater tui` and makes no lifecycle request. All necessary
+- [ ] Neptune Initialize actions use Part 01 section 10.9's common overlay
+      family. Gryphon and Wyvern card controls direct the operator to
+      `sudo updater tui` and make no lifecycle request. All necessary
       controls remain usable on narrow screens, at 200% zoom and by keyboard.
 - [ ] Applicable application and consumed-component update dialogs match all six embedded
       Part 01 section 10.8 examples: measured dimensions, font roles, colors,
@@ -274,8 +276,8 @@ Record behavior for every declared archive, mirror or folder pipeline.
 ### 38.1 Shared-Agent Initialization Acceptance
 
 Use the [Initialize workflow](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md#8-initialize-overlay-workflow)
-for applicable Neptune and Wyvern integrations. Gryphon's service card directs
-the operator to the root TUI and does not submit initialization.
+for applicable Neptune integrations. Gryphon and Wyvern service cards direct
+the operator to the root TUI and do not submit initialization.
 
 - [ ] Opening Initialize performs read-only preflight. Cancel before submit
       causes no installation, enrollment, binding or schedule change.
@@ -360,8 +362,8 @@ the operator to the root TUI and does not submit initialization.
 ### 39.1 Universal Update Workflow Acceptance
 
 This matrix applies to every current/future application and consumed shared
-component's supported update surface. Gryphon uses the root TUI for discovery
-and installation; its service Settings card has no update operation. Use the authoritative
+component's supported update surface. Gryphon and Wyvern use the root TUI for
+discovery and installation; their service Settings cards have no update operation. Use the authoritative
 [visual ledger and embedded examples](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#108-update-dialog-templates),
 [backup lifetime](./PART_03_BACKUP_AND_RECOVERY.md#132-backup-lifetime-during-an-application-update)
 and [behavior contract](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md#34-operator-update-ui).
@@ -371,7 +373,7 @@ that an arbitrary existing implementation has passed.
 - [ ] On a browser update surface, opening `Check for updates` opens the overlay
       immediately and sends one discovery request. `Check again` sends a fresh
       request; repeated clicks and stale/out-of-order responses do not duplicate
-      work or change target. Gryphon's root TUI performs the equivalent check.
+      work or change target. The root TUI performs equivalent Gryphon and Wyvern checks.
 - [ ] Test no newer version, a valid newer version, incompatible version,
       unknown installed version, offline source, unauthorized request, bad
       provenance, unavailable helper and unsupported protocol independently.
@@ -380,8 +382,8 @@ that an arbitrary existing implementation has passed.
       and exact-target binding reject draft/prerelease, downgrade, wrong
       component and same-version replacement. The helper independently verifies
       the signed manifest and actual artifact bytes before mutation.
-- [ ] Consumed agents have their applicable scoped Settings controls; Gryphon's
-      existing visual group directs the operator to the root TUI and cannot
+- [ ] Consumed agents have their applicable scoped Settings controls; Gryphon
+      and Wyvern visual groups direct the operator to the root TUI and cannot
       start check/install. Application and component versions remain distinct;
       unused components do not receive fabricated ready/update cards.
 - [ ] Application Install opens the mandatory full-ZIP warning. Cancel/Close
@@ -468,7 +470,7 @@ that an arbitrary existing implementation has passed.
       root TUI; service Settings lists only paired adapters and grants the paired
       account on selection, without requesting another code. Unlink/revoke
       affects only the selected service scope.
-- [ ] Gryphon release check/update is available without service selection only
+- [ ] Gryphon and Wyvern release check/update are available without service selection only
       in the root TUI; service-side lifecycle and update requests are denied.
 - [ ] Access Key change requires current proof, two exactly matching explicitly
       supplied replacement entries and revokes other sessions; it applies no

@@ -884,8 +884,10 @@ the [advanced Security card](<./src/example - settings - securite/example - sett
 [Backup](./src/example-backup.png), [Updates](./src/example-updates.png) and
 [Logs](./src/example-logs.png). The connected-service references are
 [Gryphon Connection before binding](<./src/example - settings - gryphon/example - settings - gryphon - not connected.png>),
-[Gryphon Connection after binding](<./src/example - settings - gryphon/example - settings - gryphon - сonnected.png>) and
-[Wyverne Connection](./src/example-wyverne.png).
+[Gryphon Connection after binding](<./src/example - settings - gryphon/example - settings - gryphon - сonnected.png>),
+[Wyverne Connection before binding](<./src/example - settings - wyvern/example - settings - wyvern connection - dont connected.png>),
+[Wyverne Connection after binding](<./src/example - settings - wyvern/example - settings - wyvern connection - connected.png>) and
+[Wyverne Connection error](<./src/example - settings - wyvern/example - settings - wyvern connection - error.png>).
 The Backup, Updates, Logs and connected-service card examples are embedded and
 measured in [section 10.5](#105-settings-templates); the Appearance and Security
 crops are specified below. Their states, controls and ownership boundaries are
@@ -1115,7 +1117,13 @@ and the same bot can be selected again to restore a revoked service binding.
 Bot registration, the one-time Telegram `/link CODE` pairing, and shared
 Gryphon version checks/updates use `sudo updater tui`; these controls are
 absent from service Settings. The service card never issues another `/link`.
-Neptune and Wyvern retain their applicable scoped Initialize workflows.
+Neptune retains its scoped Initialize workflow. The `Wyverne Connection` card
+in Laboratory and Mastermind now shows one Adapter-binding group with local
+gateway and active-Adapter status, a safe active name and one link/change action.
+The action opens this service's Adapter-choice overlay. Wyvern installation,
+client enrollment, shared release checks/updates and Adapter administration
+run through `sudo updater tui`; they have no competing controls in these cards.
+Laboratory keeps its original visual language for the card and overlay.
 Function linking and revocation follow the [Part 10 state matrix](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md).
 
 #### Updates
@@ -2550,9 +2558,9 @@ remain normative even when they are not repeated in every entry.
 
 ### 10.5 Settings Templates
 
-The card exports below define the current Settings layouts. The newer Security
-and Gryphon crops linked in sections 5.5 and 10.5.5 take precedence over older
-settings canvases for those cards. Their ordinals are examples;
+The card exports below define the Settings visual targets. The newer Security,
+Gryphon and Wyverne crops linked in sections 5.5, 10.5.5 and 10.5.6 take
+precedence over older settings canvases for those cards. Their ordinals are examples;
 actual values follow the persisted card order. Application names, versions,
 adapter usernames, provider names and routes inside the PNGs are illustrative.
 The explicit `Gryphon Connection` and `Wyverne Connection` display labels
@@ -2770,30 +2778,72 @@ management remain in Updater TUI.
 
 #### 10.5.6 Wyverne Connection
 
-![Wyverne Connection with an active adapter and component update action](./src/example-wyverne.png)
+![Wyverne Connection before binding](<./src/example - settings - wyvern/example - settings - wyvern connection - dont connected.png>)
 
-Source: `1610x483px`. Agent status is approximately `1538x40px` at
-`(39,158)`; function linking and version checking are `326x40px` at
-`(39,245)` and `(39,406)`. Preserve the Adapter summary between status
-and the function action and the separate version group.
+![Wyverne Connection after binding](<./src/example - settings - wyvern/example - settings - wyvern connection - connected.png>)
 
-The title is `Wyverne Connection`; the LLM gateway owns provider connections.
-The raster explanation attributing them to the messaging gateway is a wording
-error and MUST be replaced. Provider/model examples are runtime data, not a
-required default.
+![Wyverne Connection error state](<./src/example - settings - wyvern/example - settings - wyvern connection - error.png>)
 
-An absent or unenrolled gateway exposes `Initialize`. A ready registered
-client can select only an allowed Adapter and link its own function. Show
-actual selected Adapter and function readiness separately from reachability;
-an active gateway alone does not prove a usable model binding. Changing an
-Adapter requires explicit confirmation and validation; failure preserves the
-previous working selection. Consumer Settings must not expose provider keys,
-another client's bindings or a host-admin socket. Component update uses the
-same update overlay without an application ZIP.
+The state crops are each `1610x426px`; the source
+[settings canvas](<./src/example - settings - wyvern/example - settings - wyvern.png>)
+places the card beside its Adapter-choice overlays. The implemented Mastermind
+card follows that geometry with one `Wyverne adapter binding` group: a short
+provider-ownership explanation, two full-width status rows for local Wyvern
+reachability and active-Adapter readiness, the safe active Adapter name or
+`none`, then one `Link Wyverne function` / `Change Wyverne function` action.
+The action is `326x40px` at the reference width. Waiting, unavailable and
+ready observations remain distinct. A missing gateway or failed Adapter shows
+the concrete error and preserves any last-known selection. The second row must
+not imply that merely opening Settings has sent a provider request. No release
+check or provider probe runs when the card or choice window opens.
+
+Laboratory uses the same information and binding flow inside its original
+editorial Settings card. Its existing section heading, Space Grotesk type,
+surface colors, semantic status colors and native dialog treatment remain
+authoritative there; the black Mastermind canvas is not a Laboratory theme.
+
+The [unconnected choice overlay](<./src/example - settings - wyvern/example - setting -wyvern - connection choice overlay - not connected.png>)
+lists only Adapters registered in Wyvern, granted to this client and compatible
+with the selected function's required capabilities. If the service has several
+functions, an explicit function selector scopes the list; changing one binding
+preserves the others. An empty list points the operator to `sudo updater tui`
+for Adapter configuration or client enrollment. A formerly selected but
+unavailable choice may remain visible for context and cannot be applied. The
+[connected choice overlay](<./src/example - settings - wyvern/example - setting -wyvern - connection choice overlay - connected.png>)
+marks the active selection and shows only safe, non-secret configuration details
+for that function. Selecting a new choice asks for binding confirmation, then
+saves this service's choice without a release check or provider request.
+Its `Unlink all adapters` action, after confirmation, clears only this service's
+function bindings; it never deletes a shared Adapter, revokes another client or
+removes provider credentials. A choice applies the intended service function
+with the observed binding revision and stable operation ID. Conflicts require
+refresh and explicit review; failed writes preserve the previous binding.
+The desktop source is `773x716px`; the implemented window is about `760px`
+wide with a `55px` title row and `52px` choices. Its list and details use two
+columns on desktop and stack on narrow screens. Laboratory uses the same
+structure with its own surface, type and accent colors.
+
+The title is `Wyverne Connection`; the gateway's executable and API identity
+remain `wyvern`. The images' claims that Gryphon owns LLM connections and that
+every displayed connection is already applied are copy errors: Wyvern owns
+provider connections, and the list contains this client's permitted choices.
+The illustrated provider and Adapter names are sample data, not defaults.
+Consumer Settings must not expose provider keys, another client's bindings or
+the host-admin socket.
+
+This card and overlay are implemented in Laboratory and Mastermind. The former
+Gateway, Client connection, Allowed Adapter and Wyvern version groups and their
+installation, management and release-check buttons are absent. Shared Wyvern
+release checks and updates happen in Updater TUI without choosing a service;
+the TUI compares the repository addresses configured in Kernel for registered
+consumers and offers no update when they differ. On first installation, the
+TUI's service choice supplies Kernel configuration only; linking a client is
+a separate action. Consumer Settings only choose permitted Adapters and save
+their own function bindings.
 
 #### 10.5.7 Card Acceptance
 
-Compare all six crops and full-shell views at `1919x1034`, `1920x1080`,
+Compare all applicable crops and full-shell views at `1919x1034`, `1920x1080`,
 `1000px`, `720px`, `420px`, `360px`, 200% zoom and coarse-pointer
 input. Check header, insets, group rhythm, status squares, button targets and
 before/after expansion against the measured ledgers; allow only documented
@@ -3244,9 +3294,11 @@ The functional gate is
 
 ### 10.9 Service Initialization Overlays
 
-The applicable `Initialize` actions in the automatic-backup group and Wyverne
-Connection use one overlay family. Gryphon Connection uses the bot-selection
-overlay described in section 10.5.5. This is a specification for
+The applicable `Initialize` actions in the automatic-backup group use one
+overlay family. Gryphon Connection uses the bot-selection overlay described
+in section 10.5.5; Wyverne Connection uses the Adapter-choice overlay in
+section 10.5.6. Their installation and enrollment instructions lead to the
+root TUI. This is a specification for
 states absent from the static card PNGs; its visual basis is the update warning
 and running-job panels in section 10.8. It does not introduce another theme.
 Component-specific fields and postconditions are defined in
