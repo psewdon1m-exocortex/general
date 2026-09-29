@@ -23,7 +23,9 @@ Keep these roles separate:
   GitHub Secrets, signs the release manifest, derives the public counterpart and
   embeds only that public part in the service's release `bootstrap.sh`.
 - A control-plane registry distributes repository locations and compatibility
-  policy.
+  policy. For Updater and shared host agents, Updater reads it through its own
+  host machine connection, with component-specific root TUI fallback only when
+  that connection is unavailable.
 - The application exposes the operator workflow, creates its standard full
   logical backup and submits a scoped target version, request ID, saved-copy
   receipt and exact archive bytes to the local update helper.
@@ -278,6 +280,19 @@ the release independently and does not trust the UI response.
 A checksummed last-known-good cache detects corruption and permits temporary
 offline resolution. A checksum is not a signature; authenticity still depends
 on the authenticated registry connection and protected local cache.
+This generic application-release cache does not override the host-component
+source order below.
+
+For the host-wide Updater, Neptune Linux, Gryphon and Wyvern release paths,
+steps 1–6 use Updater's own scoped Kernel connection rather than a selected
+application head. If Kernel is unreachable, Updater may use the URL saved by
+the root operator in that component's TUI section. A reachable but invalid or
+conflicting Register response fails closed; a later signature, manifest,
+digest, compatibility or health failure never triggers another source. A
+verified exact-version bootstrap/bundle may provide its own first-install
+artifact and seed only its own editable fallback URL. No compiled catalog of
+all host repositories is required. See
+[Part 13](./PART_13_HOST_DEPENDENCIES_AND_EXTENSION_GUIDE.md#3-release-source-trust-and-authorization).
 
 Channel policy MUST be explicit and uniform. Do not emit a manifest channel
 that the installer ignores. Stable selection rejects prerelease suffixes at
@@ -425,8 +440,9 @@ an actionable recovery message, or recognize its still-running self-update super
 
 ## 31. Update-Helper Self-Update
 
-Self-update is an explicit privileged command. It resolves its own repository
-from the same validated registry policy, selects an exact allowed version,
+Self-update is an explicit privileged command. It works with zero registered
+application heads, resolves its own repository through the host source policy
+above, selects an exact allowed version,
 verifies a bounded manifest and binary SHA-256, and then:
 
 1. copies the current executable to a previous-version path;
@@ -713,10 +729,12 @@ explicit restore, not to every restart.
 ### 34.6 Shared-Component Updates
 
 Every consumed shared component, including the update helper itself, uses
-the same discovery dialog, typography/theme mapping, exact-version selection,
-live job panel and error/reconnection behavior. Controls live in the
-component's own Settings card/group and identify the affected component and
-its shared host scope.
+the same exact-version selection, durable job and error/reconnection semantics.
+The root TUI provides Updater check/self-update and Neptune/Gryphon/Wyvern
+install/check/update without a registered application. Where a scoped
+application Settings control is allowed, it identifies the shared host impact
+and delegates to the same host-wide operation; it never supplies the release
+URL or chooses a consumer as release authority.
 
 The only application-backup-gate exception is a typed shared-component update:
 no application ZIP creation/download, saved-copy acknowledgement or backup
@@ -733,9 +751,11 @@ update it. An approved failure recovery uses previous verified binaries and
 configuration; it cannot claim restoration from an application ZIP that was
 never requested.
 
-The full ordinary workflow MUST be reproducible through the connected
-application's UI without a native CLI. A terminal interface is an additional
-operator surface; its actual supported operations are documented separately.
+The full ordinary **application update** workflow MUST be reproducible through
+the connected application's UI without a native CLI. Shared host components
+have their root TUI workflow, with only explicitly permitted scoped service
+controls. Both surfaces keep exact-target confirmation and durable job
+observation; their supported operations are documented separately.
 
 ## 35. Compatibility Migration To The Unified Update Workflow
 

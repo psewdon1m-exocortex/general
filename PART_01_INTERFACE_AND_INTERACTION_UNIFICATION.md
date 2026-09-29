@@ -2835,10 +2835,10 @@ This card and overlay are implemented in Laboratory and Mastermind. The former
 Gateway, Client connection, Allowed Adapter and Wyvern version groups and their
 installation, management and release-check buttons are absent. Shared Wyvern
 release checks and updates happen in Updater TUI without choosing a service;
-the TUI compares the repository addresses configured in Kernel for registered
-consumers and offers no update when they differ. On first installation, the
-TUI's service choice supplies Kernel configuration only; linking a client is
-a separate action. Consumer Settings only choose permitted Adapters and save
+Updater reads Kernel Register through its own machine connection and uses the
+Wyvern URL saved in root TUI only when Kernel is unavailable. First installation
+needs no service choice; a consuming installer may ensure Wyvern and link its
+own client automatically. Consumer Settings only choose permitted Adapters and save
 their own function bindings.
 
 #### 10.5.7 Card Acceptance

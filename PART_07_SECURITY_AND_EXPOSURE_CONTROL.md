@@ -305,7 +305,18 @@ Do not write secrets into generated frontend assets, HTML, health responses,
 diagnostic endpoints, process titles, labels or image metadata. A frontend
 cannot keep a delivered value secret.
 
-#### 45.2.1 Authenticated Runtime Credential Changes
+#### 45.2.1 Host machine enrollment
+
+Updater's host-owned Kernel credential MUST be provisioned through a protected
+machine trust path, stored under root ownership and granted only explicit
+actions and host/instance scope. Register read and Wyvern enrollment are
+independent rights. A consuming installer may pass a protected credential-file
+reference to Updater, but MUST NOT read another service's `.env` or pass a
+secret in argv, logs or browser state. Wyvern's first enrollment endpoint MUST
+reject operator sessions/Access Keys and unscoped legacy service tokens; it
+accepts only an authorized Updater machine principal and is idempotent.
+
+#### 45.2.2 Authenticated Runtime Credential Changes
 
 Part 01 permits two narrow Settings workflows: changing the single-operator
 Access Key and rotating a control-plane access token. This does not authorize general

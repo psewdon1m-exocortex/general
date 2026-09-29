@@ -56,8 +56,10 @@ terminal profile in Part 01 applies to TUI rendering; the card anatomy below
 applies to consumer web Settings. Implementation status is tracked in the
 [Wyvern ledger](../wyvern/docs/IMPLEMENTATION.md); acceptance of this extension
 does not imply production deployment. The source implements these flows.
-Provider keys and Kernel Access Keys use transient masked input and never
-appear in job receipts. Adapter edits and own-client binding changes MUST
+Provider keys use transient masked input and never appear in job receipts.
+Wyvern Kernel enrollment uses Updater's scoped machine credential; its TUI
+Connect form asks for Kernel URL/instance ID, not an operator Access Key.
+Adapter edits and own-client binding changes MUST
 carry the observed revision and a stable operation ID; stale edits fail
 without replacing newer configuration.
 
@@ -117,7 +119,7 @@ gate. Neither workflow retains a permanent archive on the application host.
 
 | Observed state | Required text | Primary action |
 | --- | --- | --- |
-| Agent confirmed absent | `Not installed`; local update-helper availability | `Initialize` opens the scoped form |
+| Agent confirmed absent on an existing/damaged host | `Not installed`; local update-helper availability | `Initialize`/repair opens the scoped form; new service install must already have ensured local Neptune |
 | Installed, service missing | `Detected · not linked` | `Initialize` reuses the daemon and enrolls this service |
 | Job accepted/running | Current state and stable job ID | Disabled pending action; automatic polling |
 | Linked and complete | Storage binding, complete pipeline set and last observation | Enable/interval controls and `Back up now` for each pipeline |
@@ -252,8 +254,9 @@ Adapter registration and first pairing take place only in `sudo updater tui`:
 the operator supplies alias and token, then sends the TUI's one-use `/link CODE`
 in a private chat with the adapter. Consumer Settings cannot read or collect the
 token or issue a code. If no paired adapter exists, explain the TUI prerequisite
-without inventing a ready option. A missing Gryphon instance is installed only
-from the TUI. Existing card and overlay geometry remains the visual reference;
+without inventing a ready option. A missing Gryphon instance on an existing
+host is repaired through root TUI; a new consuming installer ensures it before
+the card is used. Existing card and overlay geometry remains the visual reference;
 the controls above define their current behavior.
 
 ## 5. Updates Panel
@@ -406,8 +409,8 @@ installer block submission with a specific explanation.
 | Component role | Allowed initialization input | Verified initialization result |
 | --- | --- | --- |
 | Backup agent | Empty masked setup code; read-only owner and declared archive/mirror/folder profile | Existing or newly installed daemon is healthy, this service is enrolled, and every required pipeline has the correct scoped source/destination and credentials |
-| Messaging gateway | No service Settings initialization input; direct the root operator to `sudo updater tui` | TUI installs/reuses the shared gateway and enrolls the service client; paired adapter selection remains a separate Settings action |
-| LLM gateway | No service Settings initialization input; direct the root operator to `sudo updater tui` | TUI installs/reuses the shared gateway and enrolls the client; the service selects an allowed Adapter separately |
+| Messaging gateway | No service Settings initialization input; direct the root operator to `sudo updater tui` for host repair | A new consuming installer ensures/reuses the shared gateway and its own client; TUI handles later host administration; paired adapter selection remains a separate Settings action |
+| LLM gateway | No service Settings initialization input; direct the root operator to `sudo updater tui` for host repair | A new consuming installer ensures/reuses the shared gateway and attempts its own client link; TUI handles later host administration; the service selects an allowed Adapter separately |
 
 No form accepts arbitrary installation commands, package URLs, another
 service's client identity, shared administrative credentials or unregistered
@@ -493,7 +496,7 @@ copy error: Wyvern owns provider access. Names and providers are sample data.
 
 | Observed state | Required action and feedback |
 | --- | --- |
-| Confirmed absent or this client unenrolled | In the current card, keep `Initialize` as TUI guidance; no service-side installation or enrollment |
+| Confirmed absent or this client unenrolled | In the current card, keep `Initialize` as TUI guidance for repair/linking; a new consuming installer ensures the local runtime and attempts its own client link before Settings opens |
 | Previously known gateway unreachable | Last-known identity/binding plus last-seen time; Retry without resetting selection |
 | Client enrolled, no permitted ready Adapter | Explain that Adapter administration happens in `sudo updater tui`; do not ask for a provider key |
 | Ready Adapter available, function unlinked | `Link Wyverne function`; show only this client's allowed choices and intended function scope |

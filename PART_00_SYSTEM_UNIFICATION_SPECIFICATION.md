@@ -101,10 +101,11 @@ Operator decision requested:
 | [Part 06. Unified Acceptance Checklist](./PART_06_UNIFIED_ACCEPTANCE_CHECKLIST.md) | Mandatory pre-push integrity/documentation gate, cross-domain acceptance and final definition of done | Always; every push records `PASS` evidence or a reasoned `N/A` for each required pre-push area |
 | [Part 07. Security, Secret Handling And Exposure Control](./PART_07_SECURITY_AND_EXPOSURE_CONTROL.md) | Mandatory pre-push security review, secret-safe CI and deployment, release provenance, runtime isolation, private/concealed exposure, crawler policy and automated-probe resistance | Security review is always required; private/concealed checks additionally apply to every surface with that exposure mode |
 | [Part 08. SEO And GEO Engineering](./PART_08_SEO_AND_GEO.md) | Conditional pre-push visibility review, indexable HTML, metadata, structured data, discovery, feeds, agent interfaces, public-content generation and search observability | The product has public, intentionally indexable content or an explicit maximum-discovery objective |
-| [Part 09. Service Agents: Deployment, Initialization And Lifecycle](./PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md) | Concrete Updater, Neptune and Gryphon topology, installation, enrollment, control, update and recovery contracts | A module deploys, initializes or operates a shared host agent |
+| [Part 09. Service Agents: Deployment, Initialization And Lifecycle](./PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md) | Concrete Updater, Neptune, Gryphon and Wyvern topology, installation, enrollment, control, update and recovery contracts | A module deploys, initializes or operates a shared host agent |
 | [Part 10. Service Agents: UI And Operator Workflows](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md) | Reusable Settings cards, service-owned backup schedules, messaging/LLM connections, shared initialization overlays and update workflows | An application exposes shared-agent status or actions |
 | [Part 11. Initial Multi-Service Deployment Profile](./PART_11_INITIAL_MULTI_SERVICE_DEPLOYMENT.md) | Concrete coordinated deployment, trust, recovery and acceptance profile for the initial service set | Deploying or validating that explicitly named service topology |
 | [Part 12. Known Deployment And Operations Problems](./PART_12_KNOWN_DEPLOYMENT_AND_OPERATIONS_PROBLEMS.md) | Stable cross-service problem IDs, recurring deployment/operations failure classes, durable remediation and the mandatory known-problem release gate | Every service-qualified release and every incident/regression that reveals a reusable failure class |
+| [Part 13. Host Dependencies And New Component Contract](./PART_13_HOST_DEPENDENCIES_AND_EXTENSION_GUIDE.md) | Linux host dependency matrix, singleton ownership, two installation orders, release-source policy and examples for new application services or shared agents | Adding or changing a service, host agent, installer or dependency edge |
 
 ## 3. Source-Of-Truth Rules
 
@@ -189,18 +190,29 @@ Operator decision requested:
 - Every independently versioned service starts at `0.0.1` and follows the
   version/tag namespace in Part 05. A plain `v0.0.1`-style tag invokes CI only;
   only a service-qualified `service-v0.0.1`-style tag may invoke publication.
-- Every deployable service owns a separate release `bootstrap.sh` and a separate
-  `.env`. Protected GitHub Secrets hold its private release-signing key; release
+- Every deployable component owns a separate release `bootstrap.sh` and its
+  own namespaced configuration, including a separate `.env` when needed.
+  Protected GitHub Secrets hold its private release-signing key; release
   CI publishes only the derived public part, embedded in that bootstrap. The
   bootstrap provisions local release trust, verifies the signed manifest and
   only then downloads the service and creates its namespaced configuration.
+- On a Linux host, Updater is the independently installable base singleton;
+  Neptune, Gryphon and Wyvern are independently installable shared singletons.
+  A service bootstrap may ensure only its declared host dependencies through
+  their verified, pinned installers. The mandatory matrix and extension rules
+  are in [Part 13](./PART_13_HOST_DEPENDENCIES_AND_EXTENSION_GUIDE.md).
+- Updater resolves host-component releases through its own Kernel machine
+  connection first and through component-specific root TUI values only when
+  that connection is unavailable. A consumer head is not the host release
+  authority. Wyvern enrollment requires scoped machine authorization, not an
+  operator Access Key/session.
 - The default production sequence is operator-prepared server, exact versioned
   bootstrap, edit only marked operator inputs, mode-`0600` environment,
   install, status, loopback health, then operator-managed Nginx configuration
   and an external canonical-HTTPS check. A service-specific variation documents
   its reason without moving public ingress into the installer.
-- Parts 09 and 10 are normative for the concrete shared-agent
-  topology. Gryphon adapter registration and one-time owner pairing happen
+- Parts 09, 10 and 13 are normative for the concrete shared-agent
+  topology and dependency matrix. Gryphon adapter registration and one-time owner pairing happen
   through the root TUI; each service separately selects a paired adapter
   and receives that verified identity in its own scope.
 - The SEO and GEO guide is additive for public/indexable surfaces. It does not

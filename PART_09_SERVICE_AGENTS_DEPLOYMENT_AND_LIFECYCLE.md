@@ -2,8 +2,10 @@
 
 This document is the Exocortex-wide source of truth for deploying, enrolling,
 operating and updating the Linux service agents **Neptune**, **Gryphon** and
-**Wyvern**, including their consuming services. It supplements the reusable deployment,
-backup, update and security Parts with the concrete Exocortex topology.
+**Wyvern**, including their consuming services and the base **Updater**. It
+supplements the reusable deployment, backup, update and security Parts with
+the concrete Exocortex topology. The dependency matrix and extension contract
+are in [Part 13](./PART_13_HOST_DEPENDENCIES_AND_EXTENSION_GUIDE.md).
 
 This Part supersedes every former direct-connection compatibility note. Gryphon
 is the single Telegram gateway: consuming services MUST NOT embed their own
@@ -44,12 +46,14 @@ Settings select an allowed Adapter for their own functions without initiating
 another release check or provider probe.
 
 The approved Wyvern extension is a shared LLM gateway per host. A consuming
-service installer MUST ensure/reuse the host Updater and may reuse/provision its
-signed Wyvern dependency during initial deployment. Routine installation,
-client enrollment, Adapter administration and shared release operations use
-`sudo updater tui`, not a consuming service's Settings. When the runtime is
-absent, TUI installation resolves the latest qualified release from Kernel;
-client enrollment is a later TUI action. Uninstalling a consumer MUST NOT remove
+service installer MUST ensure/reuse the host Updater and a healthy signed local
+Wyvern dependency during initial deployment. Direct Wyvern bootstrap and root
+TUI installation work without a consumer or Kernel. Manual host administration,
+Adapter management and shared release operations use `sudo updater tui`, not a
+consuming service's Settings. A consuming installer may invoke a narrow
+privileged ensure/connect operation during installation and link only its own
+client. The TUI and that installer continue the same lifecycle; neither asks
+for an operator Access Key to enroll Wyvern. Uninstalling a consumer MUST NOT remove
 the shared gateway or another
 consumer's binding. Default data-plane communication uses a local Unix socket;
 a dedicated domain is not required. Cross-host HTTPS is an explicit placement
@@ -78,8 +82,8 @@ production deployment.
 
 | Component | Host ownership | Primary responsibility | Consuming modules |
 | --- | --- | --- | --- |
-| Updater | One root-owned daemon per Linux host | Performs allow-listed privileged installation, enrollment and verified update jobs | Kernel, Volt, Chronos, Saturn, Neptune, Gryphon |
-| Neptune Linux | One unprivileged `neptuned` daemon per Linux host | Exports module-owned recovery archives and optional dedicated mirrors to Saturn | Kernel, Volt, Chronos, Saturn; future approved modules |
+| Updater | One root-owned daemon per Linux host | Performs allow-listed privileged installation, enrollment and verified update jobs; has its own Kernel release-source connection | All seven application services and all three shared agents |
+| Neptune Linux | One unprivileged `neptuned` daemon per Linux host | Exports module-owned recovery archives and optional dedicated mirrors to Saturn | Kernel, Volt, Chronos, Saturn, Laboratory, Mastermind; future approved modules |
 | Gryphon Linux | One shared gateway service/version per Linux host | Owns registered adapter credentials, webhooks, update deduplication, callbacks and service-scoped bindings | Chronos, Saturn and Mastermind |
 | Wyvern | One shared unprivileged gateway per Linux host, or explicit remote HTTPS instance | Owns provider Adapters, keys, request transport and media handles; consumer domains retain prompts, jobs and commits | Mastermind, Laboratory |
 | Saturn | Central control plane and storage gateway | Issues single-use setup codes, enforces storage identity/quotas, receives archives/mirrors and may relay service-owned policy/commands; no central schedule editor | All Neptune deployments |
@@ -92,17 +96,18 @@ through `sudo updater tui`; they are not service Settings actions.
 
 ## 2. Trust And Communication Topology
 
-The host operator uses `sudo updater tui` for shared Gryphon management. This console is bundled
+The host operator uses `sudo updater tui` for host-wide management. This console is bundled
 with Updater and controls the current host's Updater, Neptune, Gryphon and
 Wyvern. It uses a separate root-owned mode-`0600`
 Unix socket at `/run/exocortex-admin/updater.sock`. That directory is not mounted
 into consuming service containers. Linux peer credentials must additionally
-identify UID 0. Shared Wyvern updates and management require root operator
-dispatch; service tokens cannot check, update or install Wyvern. The service
-socket and its per-head tokens retain their existing
-scope; the operator facade selects a registered head only for actions that
-require one. Shared Gryphon and Wyvern release checks/updates do not take a
-service selection. The facade validates a typed action and delegates
+identify UID 0. Shared agent release checks/updates and manual installation
+require root operator dispatch; service tokens cannot turn their own Settings
+route into a host-wide update. A consuming service installer may use a separate
+allow-listed, privileged dependency-ensure operation during deployment. The
+service socket and its per-head tokens retain their existing scope. Host-wide
+install/check/update and Updater self-update do not select a registered head.
+The facade validates a typed action and delegates
 using the daemon-owned credential. It must not forward an
 arbitrary path, shell command or executable supplied by the terminal.
 
@@ -121,8 +126,14 @@ browser
      -> /run/gryphon/client.sock + service credential for adapter selection
 
 root operator -> sudo updater tui -> /run/exocortex-admin/updater.sock
-  -> shared Gryphon install/check/update and adapter registration
+  -> Updater self-update; Neptune/Gryphon/Wyvern install/check/update
+  -> component-specific fallback repository URLs and source status
+  -> Gryphon adapter registration; Wyvern host connection
   -> /run/gryphon-admin/admin.sock for adapter registration/pairing
+
+Updater -> Kernel Register using its own scoped host machine credential
+  -> on connection outage, component-specific root TUI release URL
+Updater -> Kernel Wyvern enrollment using a separate instance-bound machine right
 
 module backup builder
   <- loopback/private export request from neptuned
@@ -153,11 +164,16 @@ last applied schedule.
 
 ### 3.1 Main modules and Updater
 
-The normal module installer (`kernel-install`, `volt-install`,
-`chronos-install` or `saturn-install`) installs or reuses the single host
-Updater and registers its own head with a dedicated token. Initial deployment
-MUST finish health verification before the UI offers privileged component
-actions.
+Each of the seven application installers installs or reuses the single host
+Updater, registers only its own head with a dedicated token and synchronously
+ensures the agents declared in the
+[Part 13 matrix](./PART_13_HOST_DEPENDENCIES_AND_EXTENSION_GUIDE.md#2-current-consumption-matrix).
+Its install result includes the verified local health and installed/reused
+version of every required agent. A missing mandatory agent is an install
+failure; an unavailable external connection is a distinct pending state.
+Initial deployment MUST finish health verification before the UI offers
+privileged component actions. Updater itself installs and self-updates via its
+own exact-version bootstrap or root TUI without a registered head.
 
 The active systemd unit MUST preserve the Updater runtime directory across
 daemon restarts so existing container bind mounts continue to see the socket.
@@ -178,6 +194,13 @@ unprivileged user. Its registry and durable journal live under
 manifest and archive checksum and MUST NOT create a second daemon for another
 module on the same host.
 
+Neptune has its own exact-version bootstrap. It ensures Updater, installs and
+health-checks the daemon without Kernel, Saturn, another agent or a registered
+consumer. The root TUI offers the same standalone install/check/update path.
+Missing Saturn setup code or project credentials leaves only the corresponding
+enrollment pending. A consuming installer reuses the local daemon and completes
+the authorized profile steps with known credentials.
+
 Neptune releases use `neptune-vMAJOR.MINOR.PATCH` and publish platform- and
 architecture-specific archives and manifests for supported targets. The
 installer selects the host architecture, verifies the manifest-declared bytes,
@@ -188,7 +211,8 @@ logical archive builder used by manual download and restore. Neptune treats the
 archive as exact bytes: it does not unpack, rename, re-encrypt or recompress a
 recovery ZIP.
 
-The privileged CLI remains the installation, repair and emergency fallback:
+The privileged module CLI remains a profile repair and emergency fallback;
+new module installation already ensures local Neptune:
 
 ```text
 sudo kernel-install backup
@@ -197,21 +221,23 @@ sudo chronos-install backup
 sudo saturn-install backup
 ```
 
-If Neptune is absent, Settings MUST offer Initialize through the authenticated
-local Updater. Updater installs a signed release, verifies health and enrolls the
-requesting head. If a healthy instance already exists it is reused without a
-download, restart or duplicate installation. A setup code is never persisted by
-the web service. The operator sees a durable terminal job result.
+For a new application deployment, its installer ensures a healthy Neptune
+before completion. On an older or damaged host where Neptune is absent,
+Settings may offer a scoped Initialize/repair through authenticated Updater;
+it is not the normal first installation path. If a healthy instance already
+exists it is reused without a download, restart or duplicate installation.
+A setup code is never persisted by the web service. The operator sees a
+durable terminal job result.
 
 ### 3.3 Gryphon Linux
 
-Gryphon is installed once per host through `sudo updater tui`. An initial
-installation may select a registered consuming service to obtain Kernel release
-trust/configuration and enroll that service. This is bootstrap metadata, not a
-choice of which service owns Gryphon. Subsequent shared release checks/updates
-and adapter registration do not select a service. Updater verifies that
-registered Gryphon consumers agree on the Kernel release repository URL before
-choosing a release source.
+Gryphon has its own exact-version bootstrap, which ensures Updater and installs
+the local gateway without Kernel, another agent or a consumer. It can also be
+installed through `sudo updater tui` on an empty host. Shared install, release
+checks/updates and adapter registration never select a consuming service for
+release source. The installer of Chronos, Saturn or Mastermind synchronously
+ensures/reuses Gryphon and provisions only that consumer's scoped client. A
+Kernel connection or bot configuration may remain pending after local health.
 
 The root operator registers an adapter in the TUI with an alias and Telegram API
 token. Updater forwards the token only to Gryphon's root-only admin socket;
@@ -226,11 +252,51 @@ Gryphon client credential and mount the client socket. The old
 Native releases use `gryphon-vMAJOR.MINOR.PATCH` with an
 `exocortex.gryphon.release.v1` manifest. Initial installation extracts a
 verified archive, runs `packaging/linux/install.sh` as root, configures
-the protected Kernel bootstrap connection in `/etc/gryphon/gryphon.env` and starts
+the protected Kernel connection when authorized coordinates are available, and starts
 `gryphon.service`. The listener on port `18380` accepts only Telegram webhooks
 and MUST be published behind HTTPS at that public origin. Persistent database
 and protected secret copies under `GRYPHON_DATA_DIR` are operated and backed up
 together.
+
+### 3.4 Wyvern and its first Kernel enrollment
+
+Wyvern's own exact-version bootstrap ensures Updater and installs one healthy
+local runtime without Kernel, Volt, another agent or consumer. The root TUI can
+install the same runtime on an empty host. Its Kernel connection, Adapter
+configuration and consumer links are subsequent states. Laboratory and
+Mastermind installers ensure/reuse the runtime, then advance only authorized
+machine enrollment and their own client links using already available protected
+context. Missing Kernel or authorization is reported as `configuration pending`
+without repeating binary installation.
+
+The first Kernel enrollment endpoint is a machine endpoint. It authenticates
+Updater's own scoped machine credential and checks the requested Wyvern
+instance, host and `wyvern.enroll` permission. It MUST NOT accept an operator
+cookie/session or Access Key, including as a recovery route. The shared legacy
+`KERNEL_SERVICE_TOKEN` has no enrollment right unless separately provisioned as
+a scoped machine principal; it is never promoted implicitly. Kernel securely
+issues the Updater credential during host setup or a dedicated machine
+bootstrap; consuming installers pass only a protected reference to an already
+authorized credential and Kernel URL. Enrollment is idempotent across retries
+and lost responses and does not rotate existing Wyvern `manager/runtime`
+credentials without an explicit authorized rotation. Updater's own credential
+is not copied into Wyvern. TUI Connect asks for Kernel URL and, when necessary,
+instance ID, not an operator Access Key.
+
+### 3.5 Host release-source connection
+
+Updater stores its own Kernel URL and scoped Register-read credential under
+root ownership, separately from any consuming head. For Updater, Neptune,
+Gryphon and Wyvern it queries validated `repositories.<component>.url` through
+this connection first. Only when Kernel is unreachable does it use the
+component's root TUI fallback URL. Each component's TUI section can set/change
+its own HTTPS URL and shows the active source and outage reason. There is no
+preinstalled catalog of all repository URLs. A reachable invalid/conflicting
+Register response or failed release verification is an error, never a reason
+to switch source. A signed exact-version bootstrap or pinned consuming bundle
+can supply the artifact for first installation and may seed only its own
+editable fallback URL. Host-wide release actions work with zero registered
+heads and never read another service's `.env`.
 
 ## 4. Neptune Initialization
 
@@ -450,48 +516,50 @@ receipt are verified before application mutation; health checks and rollback
 determine the terminal result. Shared-component updates omit this application
 backup gate, not release verification or state preservation.
 
-### 7.2 Neptune, Gryphon and Wyvern
+### 7.2 Updater, Neptune, Gryphon and Wyvern
 
-Neptune component checks/installs use typed service-facing Updater endpoints;
-Gryphon and Wyvern use the root-only TUI operator endpoints. Updater resolves the approved repository
-from Kernel Register, selects an exact compatible release, verifies the
-manifest and checksum, stages the artifact, performs the component-specific
-atomic replacement, restarts the component and verifies its Unix-socket health.
-The web client cannot supply a URL, executable path or command.
+All four host-wide release paths use the source order in section 3.5 and work
+with no registered consumer. Updater selects an exact compatible release,
+verifies the manifest and checksum, stages the artifact, performs the
+component-specific atomic replacement, restarts the component and verifies
+local health. The web client cannot supply a URL, executable path or command.
+The root TUI supports install/check/update for all three agents and
+check/self-update for Updater; Neptune may additionally expose typed scoped
+service-facing checks where explicitly authorized.
 
 | Operation | Local Updater route |
 | --- | --- |
 | Initialize/repair Neptune profile | `POST /v1/components/neptune-linux/initialize` |
 | Read Neptune initialization result | `GET /v1/components/neptune-linux/initializations/{id}` with the authenticated head identity |
-| Check/update Neptune Linux | `POST /v1/components/neptune-linux/check` / `POST /v1/components/neptune-linux/update` |
+| Check/update Neptune Linux | Root TUI host operation; optional scoped `POST /v1/components/neptune-linux/check` / `POST /v1/components/neptune-linux/update` delegates to the same host-wide resolver |
 | Check/update Gryphon Linux | Root-only `sudo updater tui` → operator `POST /v1/check` / `POST /v1/actions`; no service selection |
 | Check/update Wyvern | Root-only `sudo updater tui` → operator `POST /v1/check` / `POST /v1/actions`; no service selection |
-| Install absent Wyvern | Root-only TUI uses a registered consumer's Kernel release configuration and installs the latest qualified signed release; client enrollment follows separately |
+| Install absent agent | Its own signed bootstrap, root TUI, or a consuming installer's narrow dependency ensure; local health is checked before optional enrollment |
+| Updater self-update | Root TUI or explicit privileged command, using its own host source; no head required |
 
 The Wyvern operator sequence is:
 
-1. Register at least one consuming service with Updater. Its scoped Kernel
-   configuration supplies the approved `repositories.wyvern.url`. For a host-wide
-   check or update, Updater reads all registered Wyvern consumers and refuses
-   to offer a release if their repository URLs disagree; the TUI does not ask
-   which service to update.
-2. If Wyvern is absent, choose the TUI installation action. This first install
-   selects a registered consumer only to obtain its Kernel release source,
-   discovers the latest qualified stable release and verifies its signature.
-   It does not enroll that client as a side effect. Without a registered
-   consumer and usable Kernel release configuration, automatic installation
-   cannot proceed.
-3. After installation, connect Wyvern to Kernel and manage Adapter credentials,
-   profiles and client grants in the root TUI. Use its separate service-link
-   action to enroll each consuming client; one host runtime is reused.
+1. Install Wyvern through its bootstrap or root TUI, with no consumer required.
+   The TUI uses Updater's own Kernel connection or the saved Wyvern fallback
+   URL when Kernel is unavailable. The exact bootstrap uses its verified
+   manifest. Installation establishes local health, not client readiness.
+2. Connect Wyvern to Kernel using the scoped Updater machine credential in
+   section 3.4; configure Adapter credentials/profiles and client grants in
+   the root TUI when these external prerequisites become available. The TUI
+   does not collect an operator Access Key for enrollment.
+3. Link each Laboratory/Mastermind client with its own scope. When installation
+   starts from either consumer, its installer automatically performs steps 1–3
+   as far as authorized context allows, without duplicate input or runtime.
 4. In Laboratory or Mastermind Settings, select an Adapter already granted to
    that client and bind the service's own functions. This does not install a
    release, perform another release check or send a provider probe.
 
-These are daemon-local routes. Gryphon and Wyvern release operations are
-available only through the root operator socket. Service-facing lifecycle and
-update requests for these gateways are denied. Browser-facing module endpoints
-do not proxy their check/update actions.
+These are daemon-local routes. Interactive Gryphon and Wyvern release
+operations are available only through the root operator socket. Service-facing
+interactive lifecycle and update requests for these gateways are denied; a
+privileged installer has only the separate, allow-listed initial dependency
+ensure contract. Browser-facing module endpoints do not proxy shared
+check/update actions.
 
 Shared-agent release policy and fleet observation may remain central. Neptune
 and other components retain their applicable scoped workflows. Gryphon and
@@ -537,4 +605,11 @@ An implementation is complete only when evidence covers:
   selection without a second `/link`; service revoke/unlink remain scoped;
 - token redaction and inability of a service container to access Gryphon admin
   operations or another Updater/Neptune profile;
+- clean-host bootstrap of Updater and each agent, root TUI install/check/update
+  with zero heads, and both bottom-up and top-down consumer installation;
+- Kernel release-source priority, component-specific TUI fallback on outage,
+  and failure without fallback on invalid Kernel data or release verification;
+- Wyvern enrollment with correct scoped Updater machine right, rejection of
+  operator session/Access Key, legacy unscoped token and wrong instance, plus
+  idempotent retry without rotating existing identities;
 - verified component update, health failure and rollback/repair behavior.

@@ -1,6 +1,6 @@
 # Part 11. Initial Multi-Service Deployment Profile
 
-This profile implements the operator decisions through 2026-09-13 and takes precedence
+This profile includes the host-dependency decision of 2026-09-29 and takes precedence
 over older CLI-only helper setup and device-only Volt unlock examples.
 It is an explicitly product-scoped compatibility profile, not the generic
 copy/paste installation template. The product-neutral happy path and placeholder
@@ -11,13 +11,14 @@ This profile is governed by the [Part 00 documentation authority](./PART_00_SYST
 
 ## Scope and trust
 
-Kernel, Volt and Saturn are main services. Updater and Neptune are per-host
-singletons. Gryphon is installed for consuming services; in this profile Saturn
-consumes it, Kernel and Volt do not. Head applications use authenticated typed
+Kernel, Volt and Saturn are main services. Updater, Neptune, Gryphon and Wyvern
+are per-host singletons. In this profile Saturn consumes Gryphon; Kernel and
+Volt do not. Head applications use authenticated typed
 Updater operations. They receive no Docker socket, sudo or Gryphon admin socket.
 
-The only discovery bootstrap exceptions are the protected Kernel origin and
-service token on each host, and Kernel's protected Volt bootstrap origin/token.
+The discovery bootstrap exceptions, when configured, are the protected Kernel
+origin and scoped machine credential of Updater on a host, applicable service-owned
+Kernel credentials, and Kernel's protected Volt bootstrap origin/token.
 Subsequent secret resolution and generated cross-service URLs use current Kernel
 Register values. Kernel stores references, metadata and its local trust material;
 it does not persist resolved domain secrets. Numeric Volt references are
@@ -39,9 +40,11 @@ service-defined shape policy.
 
 ## First Register
 
-`kernel/data/defaults/register.json` contains exactly 28 initial-profile keys,
-including all six repositories and the Gryphon webhook origin. Empty references
-are unconfigured state, not deployable values. Production coordinates and secret
+`kernel/data/defaults/register.json` contains the initial-profile repository
+keys and Gryphon webhook origin. Empty references are unconfigured state, not
+deployable values. Host-agent first installation does not wait for all of
+these entries: Updater uses its own Kernel connection first, and a component-
+specific root TUI fallback URL when Kernel is unavailable. Production coordinates and secret
 values must never be invented by an installer. Store real values in Volt, then use
 Kernel's profile API or `scripts/bootstrap-register.mjs` to import references and
 run the semantic check. Pruning an older profile is explicit and its previous
@@ -49,7 +52,9 @@ Register revision remains restorable. The broader seed is preserved separately.
 
 ## Releases and host preparation
 
-The current coordinated-deployment baseline requires Updater `0.4.3` or newer.
+The former coordinated-deployment baseline required Updater `0.4.3` or newer;
+it does not establish compatibility with the new host dependency contract.
+The implementing releases MUST declare and test their actual minimum Updater.
 Every consuming repository MUST pin the exact tested Updater version in
 `.release/updater.version`; release that exact `updater-vMAJOR.MINOR.PATCH`
 artifact before publishing a consuming service bundle. A project pin may move
@@ -57,14 +62,15 @@ forward after compatibility verification but MUST NOT silently fall below the
 profile minimum. The root installer
 prepares fixed helper identities, directories, CLI links and systemd unit links
 before starting Updater's restricted service. Healthy existing agents are reused.
-Updater reconciles registered heads automatically: Kernel, Volt and Saturn require
-Neptune, and Saturn also consumes Gryphon. Neptune reconciliation installs a
-missing eligible helper after Kernel Register and host release trust are ready;
-on an empty infrastructure it retries after Volt and the Register exist and
-records a terminal job. Gryphon installation and adapter registration/pairing
-are completed through `sudo updater tui`; Saturn Settings selects an already
-paired adapter. Initial installation may use Saturn as the registered release
-configuration source, but later Gryphon checks/updates do not select a service.
+Kernel, Volt and Saturn installers synchronously ensure Neptune; Saturn also
+ensures Gryphon. They use verified pinned first-install bundles when Kernel or
+TUI fallback is not configured, wait for each local daemon's health and reuse
+healthy instances. Background reconciliation remains a repair path. Updater
+and each agent also install from their own exact-version bootstrap on a clean
+host; root TUI can install/check/update agents without a registered head.
+Gryphon adapter registration/pairing occurs through `sudo updater tui`;
+Saturn Settings selects an already paired adapter. Saturn is never the release
+configuration source for the shared Gryphon instance.
 Gryphon release bundles include an architecture-specific Node runtime covered by
 the artifact digest and manifest signature.
 
@@ -84,7 +90,9 @@ On a clean host the service bootstrap atomically creates
 `/etc/vault/release-public-key.pem`. It verifies the signed manifest before
 trusting any artifact URL or digest, downloads only that service and creates
 only that service's configuration and `.env`. Each service therefore has an
-independent bootstrap, trust file and environment file. Release trust uses no
+independent bootstrap, trust file and environment file. Its installer may then
+ensure only declared shared host dependencies through separately verified
+pinned bundles. Release trust uses no
 `scp`, separately typed fingerprint or manually prepared public-key file.
 
 `scripts/create-release-key.mjs` and `scripts/sign-release.mjs` provide initial

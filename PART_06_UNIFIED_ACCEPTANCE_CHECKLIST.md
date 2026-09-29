@@ -237,8 +237,8 @@ Record behavior for every declared archive, mirror or folder pipeline.
 - [ ] One bootstrap command prepares verified, root-owned files.
 - [ ] The bootstrap URL names an exact versioned release asset, not `main`, a
       mutable branch or an unpinned `latest` endpoint.
-- [ ] Every service has its own versioned `bootstrap.sh` and separate
-      mode-`0600` `.env`; neither is shared across services.
+- [ ] Every deployable component has its own versioned `bootstrap.sh` and
+      namespaced configuration; any required mode-`0600` `.env` is not shared.
 - [ ] Protected GitHub Secrets retain each private release-signing key; tag CI
       signs with it and exports only the derived public part.
 - [ ] Bootstrap embeds and installs the public release key as
@@ -260,6 +260,21 @@ Record behavior for every declared archive, mirror or folder pipeline.
 - [ ] Compose or system-service configuration validates before mutation.
 - [ ] Health checks gate success and diagnostics remain bounded.
 - [ ] Existing installations use update/repair, not destructive re-bootstrap.
+- [ ] On a clean Linux host, exact-version bootstrap installs Updater alone;
+      each Neptune/Gryphon/Wyvern bootstrap ensures that same Updater and only
+      its own healthy local daemon, without Kernel or another agent.
+- [ ] Root TUI works with zero registered heads: Updater check/self-update and
+      agent install/check/update each use Updater's own Kernel connection first
+      or that component's saved TUI URL when Kernel is unavailable.
+- [ ] A reachable invalid/conflicting Kernel source, bad manifest/signature/
+      digest or failed health stops without trying another source.
+- [ ] All seven application installers synchronously ensure only their
+      [declared agents](./PART_13_HOST_DEPENDENCIES_AND_EXTENSION_GUIDE.md#2-current-consumption-matrix),
+      wait for local health, and report installed/reused versions. A second
+      consumer does not duplicate/downgrade an agent or rotate its secrets.
+- [ ] Bottom-up and top-down installations reach the same authorized state:
+      unavailable external credentials produce precise pending connection
+      states; when present, known values are reused without repeated input.
 - [ ] UI agent initialization reaches only a typed local-update operation with the
       requesting head's token; the application has no sudo, Docker socket or
       arbitrary command surface.
@@ -277,7 +292,8 @@ Record behavior for every declared archive, mirror or folder pipeline.
 
 Use the [Initialize workflow](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md#8-initialize-overlay-workflow)
 for applicable Neptune integrations. Gryphon and Wyvern service cards direct
-the operator to the root TUI and do not submit initialization.
+the operator to the root TUI for host repair and do not submit interactive
+host-wide installation. New consuming installers ensure their local agents.
 
 - [ ] Opening Initialize performs read-only preflight. Cancel before submit
       causes no installation, enrollment, binding or schedule change.
@@ -470,8 +486,14 @@ that an arbitrary existing implementation has passed.
       root TUI; service Settings lists only paired adapters and grants the paired
       account on selection, without requesting another code. Unlink/revoke
       affects only the selected service scope.
-- [ ] Gryphon and Wyvern release check/update are available without service selection only
-      in the root TUI; service-side lifecycle and update requests are denied.
+- [ ] Interactive Gryphon and Wyvern release check/update are available
+      without service selection in the root TUI; browser-initiated host-wide
+      lifecycle/update requests are denied. A privileged consuming installer
+      has only the separate, allow-listed initial dependency-ensure operation.
+- [ ] Wyvern enrollment accepts only Updater's instance/host-scoped machine
+      right. Operator cookie/Access Key, an unscoped legacy service token and
+      another instance's credential fail; retry does not rotate existing
+      `manager/runtime` identities or create duplicate client links.
 - [ ] Access Key change requires current proof, two exactly matching explicitly
       supplied replacement entries and revokes other sessions; it applies no
       password-strength or value-shape policy. Control-plane token rotation is

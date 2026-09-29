@@ -44,8 +44,13 @@ malicious mutable bootstrap script.
 The first command prepares files; it does not pretend that unknown operator
 inputs can be guessed safely. It ends by printing the exact `.env` location,
 the section the operator may edit and the exact local command for installation.
+For Updater and shared host agents whose local install needs no operator input,
+the exact-version bootstrap MAY complete verified local installation in that
+command. It reports any later upstream/client setup as pending rather than
+inventing credentials. Application installers retain the explicit input step
+where their own configuration requires it.
 Every deployable service publishes and owns its own `bootstrap.sh`; one
-bootstrap MUST NOT silently prepare another application or merge multiple
+bootstrap MUST NOT silently prepare another independent application or merge multiple
 services into a shared `.env`.
 
 ### 18.1 Standard Production Happy Path
@@ -118,8 +123,10 @@ The root bootstrap MUST:
 11. Reject absolute paths and `..` traversal entries.
 12. Extract without archived owner or permission metadata.
 13. Install into a fixed root-owned directory.
-14. Create only this service's namespaced configuration and mode-`0600` `.env`,
-    then call the bundled installer in `prepare` mode.
+14. Create only this service's namespaced configuration and mode-`0600` `.env`
+    where its contract needs one. Call the bundled installer in `prepare` mode
+    when operator input is still required; a self-contained host component may
+    finish local installation immediately.
 15. Install a small administrative wrapper in the system path so later install,
     status and repair actions do not depend on the current working directory.
 
@@ -201,17 +208,36 @@ For a containerized service, the local installer:
 4. Pulls the exact image by digest before changing runtime state.
 5. Installs or reuses one host updater and registers this local service with a
    separate control token.
-6. Runs `docker compose config` as a fail-fast syntax and substitution check.
-7. Starts the project detached.
-8. Polls a loopback health endpoint with a bounded timeout.
-9. On timeout, prints service status and only a bounded diagnostic tail.
-10. Exits nonzero unless the service is healthy.
+6. Synchronously ensures each declared shared host agent from the
+   [Part 13 matrix](./PART_13_HOST_DEPENDENCIES_AND_EXTENSION_GUIDE.md#2-current-consumption-matrix)
+   through a pinned, verified installer; waits for local daemon health and
+   reports installed or reused versions. It does not duplicate or downgrade
+   an existing healthy agent.
+7. Advances authorized upstream and own-client connections using protected
+   credential references already available to the installer. External
+   integration prerequisites may remain explicitly pending; a missing or
+   unhealthy mandatory local agent cannot count as a successful install.
+8. Runs `docker compose config` as a fail-fast syntax and substitution check.
+9. Starts the project detached.
+10. Polls a loopback health endpoint with a bounded timeout.
+11. On timeout, prints service status and only a bounded diagnostic tail.
+12. Exits nonzero unless the service is healthy.
 
 Installing a main module also registers its independent profile with the
 privileged local update helper. It does not grant the application general root
 execution. A shared host agent is
 installed once and reused; later module enrollment adds only the module-scoped
 profile and credentials.
+
+Updater can be bootstrapped on an otherwise empty host. A shared host agent's
+own exact-version bootstrap ensures/reuses Updater, then installs its signed
+runtime without requiring Kernel, another agent or a consumer head. Root TUI
+offers the same standalone install/check/update path. Bottom-up deployment may
+stop at `installed, configuration pending`; a later consuming installer
+continues authorized enrollment. Top-down deployment performs these local
+dependency steps automatically. Agent and application bootstraps keep separate
+trust, configuration and rollback ownership; formal host dependencies are not
+independent applications bundled into one lifecycle.
 
 The Compose production definition MUST rotate container logs, run application
 containers as non-root where possible, drop capabilities, enable
@@ -278,19 +304,26 @@ permission to add coturn as a generic dependency.
 - [ ] The documented first step is one command and ends at a clear operator
       input boundary.
 - [ ] Bootstrap identity is immutable or independently authenticated.
-- [ ] The service has its own release `bootstrap.sh`, local trust file and
-      mode-`0600` `.env`; none is shared with another service.
+- [ ] The component has its own release `bootstrap.sh`, local trust file and
+      namespaced configuration; any required `.env` has mode `0600` and is not
+      shared with another component.
 - [ ] Bootstrap installs its embedded public release key without `scp`, manual
       fingerprints or operator-prepared key files, then verifies the manifest
       signature before trusting release coordinates.
 - [ ] Manifest version and component role match the selected tag exactly.
 - [ ] Bundle bytes are checksum-verified before safe extraction.
-- [ ] `.env` is created once with mode `0600`; placeholders cannot start.
+- [ ] Any required `.env` is created once with mode `0600`; placeholders cannot start.
 - [ ] Internal secrets are generated automatically and never printed.
 - [ ] The image is pulled by digest.
 - [ ] Compose configuration is validated before start.
 - [ ] A bounded loopback and, where required, public health check gates success.
 - [ ] Re-running bootstrap cannot overwrite an existing deployment silently.
+- [ ] Updater and each shared host agent can install on a clean Linux host
+      through its own exact-version bootstrap; an agent bootstrap ensures one
+      Updater and does not require a consumer head or neighboring agent.
+- [ ] Each application installer synchronously ensures and health-checks only
+      its declared host agents, reuses existing instances and reports any
+      external connection that remains pending.
 - [ ] Failure diagnostics and container logs are bounded.
 - [ ] Host-native installation validates certificate, protected-port conflict,
       service state and health.
