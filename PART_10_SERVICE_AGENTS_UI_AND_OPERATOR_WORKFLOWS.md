@@ -12,15 +12,15 @@ precedence over conflicting project-local UI documentation.
 The linked raster exports are composition references:
 
 - [Logs](./src/example-logs.png)
-- [Backup](./src/example-backup.png)
-- [Updates](./src/example-updates.png)
+- [Backup](<./src/example - settings - backups/example - settings - backups.png>)
+- [Updates](<./src/example - settings - updates/example - settings - updates.png>)
 - [Wyverne Connection before binding](<./src/example - settings - wyvern/example - settings - wyvern connection - dont connected.png>)
 - [Wyverne Connection after binding](<./src/example - settings - wyvern/example - settings - wyvern connection - connected.png>)
 - [Wyverne Connection error](<./src/example - settings - wyvern/example - settings - wyvern connection - error.png>)
 - [Wyverne Adapter choice before binding](<./src/example - settings - wyvern/example - setting -wyvern - connection choice overlay - not connected.png>)
 - [Wyverne Adapter choice after binding](<./src/example - settings - wyvern/example - setting -wyvern - connection choice overlay - connected.png>)
-- [Gryphon Connection before binding](./src/exampe-bot_connection-before.png)
-- [Gryphon Connection after binding](./src/example-bot_connection-after.png)
+- [Gryphon Connection before binding](<./src/example - settings - gryphon/example - settings - gryphon - not connected.png>)
+- [Gryphon Connection after binding](<./src/example - settings - gryphon/example - settings - gryphon - сonnected.png>)
 
 Their true-black palette, square borders, typography, title hierarchy, row
 geometry, spacing rhythm and full-width action placement are normative as
@@ -94,26 +94,34 @@ status signal.
 
 ## 2. Backup And Neptune Panel
 
-The [Backup panel](./src/example-backup.png), `1610x782px`, defines the
-grouping and alignment. The owning service controls its own schedules and
-explicit remote runs here. Central storage no longer exposes another editor
-or backup-run action for those service policies.
+The [Backup examples](./src/example%20-%20settings%20-%20backups/) define the
+visual grouping. The owning service controls its own schedules here.
+Central storage does not expose another editor or manual backup-run action
+for those service policies.
 
 Every module Backup card contains, in this order:
 
-1. **System snapshot** — `Create and download snapshot`, actual full logical
+1. **Manual snapshot** — `Create and download snapshot`, actual full logical
    scope and exclusions. A single explicit action creates/downloads the ZIP.
-2. **Restore snapshot** — `Browse local snapshot archive`, native picker
+2. **Automatic backup to <storage>** — explanation, local agent and pipeline
+   states, one enabled state and interval control, then Link/Repair or
+   Unlink action. The pipeline details retain observed next due and results.
+3. **Restore snapshot** — `Browse local snapshot archive`, native picker
    inside the restore overlay, preflight and explicit replacement confirmation.
-3. **Automatic backup to <storage>** — explanation, local agent state,
-   Initialize/Repair, enabled state, interval, next due and manual remote run.
-4. **Neptune version** — actual installed component version and its own
-   `Check Neptune for updates` action using the universal update overlay.
 
-Manual snapshot download saves to the operator computer. The remote-run action
-uses the automatic pipeline to upload the same standard ZIP format to storage;
-it does not start a browser download or substitute for the update saved-copy
-gate. Neither workflow retains a permanent archive on the application host.
+The connected card displays `Unlink Neptune agent` in the reference position.
+After confirmation, the service follows a durable scoped Updater job through
+draining, credential revocation and completion. The card shows `unlinking`
+while the job is in progress, including after a page reload. Link is blocked;
+Unlink offers retry if the previous job failed. Updater serializes lifecycle
+jobs. A failed job leaves the service paused for a safe retry. Other
+services and the shared Neptune daemon continue running. Stored Saturn archives
+remain available; a new setup code is required to reconnect this service.
+
+Manual snapshot download saves to the operator computer. The automatic
+pipeline uploads the service archive to storage on its schedule. Neither
+workflow retains a permanent archive on the application host. Check and update
+Neptune through `sudo updater tui` on the host.
 
 ### 2.1 Status and action matrix
 
@@ -122,7 +130,7 @@ gate. Neither workflow retains a permanent archive on the application host.
 | Agent confirmed absent on an existing/damaged host | `Not installed`; local update-helper availability | `Initialize`/repair opens the scoped form; new service install must already have ensured local Neptune |
 | Installed, service missing | `Detected · not linked` | `Initialize` reuses the daemon and enrolls this service |
 | Job accepted/running | Current state and stable job ID | Disabled pending action; automatic polling |
-| Linked and complete | Storage binding, complete pipeline set and last observation | Enable/interval controls and `Back up now` for each pipeline |
+| Linked and complete | Storage binding, complete pipeline set and last observation | Enable/interval controls in the owning service Settings |
 | Required pipeline missing/wrong | `Partial configuration` and per-pipeline rows | `Repair Neptune pipelines` with scoped confirmation |
 | Unreachable with cached state | `Offline · last seen …` | Retry/reload without discarding job ID |
 | Terminal failure | Sanitized reason and failed state | Retry after correction |
@@ -139,8 +147,8 @@ new profile leaves automatic backup disabled with a 24-hour interval.
 ### 2.2 Schedule Controls And Persistence
 
 The schedule group contains a labeled `Enable automatic backups` checkbox,
-`Interval in hours` numeric field, independent `Back up to <storage> now`
-action, and textual desired/applied policy status. Show next run, last
+`Interval in hours` numeric field and textual desired/applied policy status.
+Show next run, last
 successful commitment, current run/retry state and sanitized error.
 
 The owning application's authenticated API is the operator write path.
@@ -167,10 +175,8 @@ edits. Dates are stored in UTC and shown with the operator's timezone.
 
 Enabling/changing interval schedules the next run; it does not start a backup.
 Disabling blocks future scheduled work without corrupting an accepted transfer.
-`Back up now` works independently of enabled state, carries an idempotency
-key and follows a durable run ID through export, upload/retry and remote
-commitment. Disable/observe it while the same project is busy. Queued is shown
-only if the server actually supports and accepts a durable queue.
+Service-facing APIs reject manual policy-run requests. Existing accepted runs
+may finish and remain visible in read-only history.
 
 The agent, not the page, runs the schedule. Closing the browser, restarting the
 service/agent or losing a control-plane connection must not reset its applied
@@ -183,8 +189,8 @@ Backup/restore includes these settings under Part 03.
 
 | Profile | Required groups | Success criterion |
 | --- | --- | --- |
-| Recovery archive | One scoped archive schedule/status/run group | Registration, applied policy and remote receipt are observable |
-| Recovery archive plus dedicated file mirror | Two separately named groups with independent enabled/interval/status | Both declared pipelines are complete; one healthy pipeline is partial success only |
+| Recovery archive | One scoped archive schedule and status group | Registration, applied policy and remote receipt are observable |
+| Recovery archive plus dedicated file mirror | Two separately named status groups; one enable switch and hourly interval update both schedules atomically | Both declared pipelines are complete; one healthy pipeline is partial success only |
 | Folder synchronization | Source-client-owned folder policy with its own status and limits | Correct source/destination scope, policy acknowledgement and transfer result |
 
 An initialization code may establish a combined profile, but does not merge
@@ -199,7 +205,8 @@ policy. It may display read-only desired/applied schedules and last results
 with a current approved link to the owning service's Backup card.
 It MUST NOT retain schedule editing, schedule enable toggles or explicit
 service backup-run buttons. A hidden old endpoint cannot remain an alternative
-operator write path that bypasses the service policy scope.
+operator write path that bypasses the service policy scope. Neptune release
+checks and updates are performed only through `sudo updater tui` on the host.
 
 Privileged identity/quota/revocation actions still require owner authorization
 and fresh reauthentication where specified. Their authority is not delegated
@@ -220,13 +227,14 @@ The [before](<./src/example - settings - gryphon/example - settings - gryphon - 
 The old `Bot connection` title MUST be replaced by `Gryphon Connection`
 in every consuming Settings view, navigation/accessibility label and embedded
 operator guide. Product-specific aliases in those PNGs are replaced by the
-current service's real identity.
+current service's real identity. The PNG label `Gryphon bot binding` is
+historical copy; the functional term is `Gryphon adapter binding`.
 
 Every application that consumes the messaging gateway renders this card.
 An application that does not consume it does not render a dummy connection.
-The card contains one **Gryphon bot binding** group: local-agent reachability,
+The card contains one **Gryphon adapter binding** group: local-agent reachability,
 applied-connection reachability, the selected adapter alias or `none`, and a
-link/change function action. The bot-selection overlay shows paired bots,
+link/change function action. The adapter-selection overlay shows paired adapters,
 non-secret details for the active adapter and service-scoped unlink.
 Registration, `/link CODE` pairing and shared release checks/updates occur in
 `sudo updater tui` and do not have actions in service Settings.
@@ -261,12 +269,11 @@ the controls above define their current behavior.
 
 ## 5. Updates Panel
 
-The [Updates panel](./src/example-updates.png) defines the alignment for application
+The [Updates panel](<./src/example - settings - updates/example - settings - updates.png>) defines the alignment for application
 version, local update-helper reachability, registry reachability and the
 full-width `Check for updates` action. It represents the application release
-path; applicable shared-component controls identify their own targets separately.
-Gryphon's card provides the TUI instruction instead of a service-side check.
-Its source canvas is `1610x566px`.
+path. Updater, Neptune, Gryphon and Wyvern release checks and installs happen
+through the host TUI; service cards expose no shared-component update action.
 
 The permanent card contains:
 
@@ -277,7 +284,7 @@ The permanent card contains:
 
 ### 5.1 Universal Dialog And References
 
-The normative six-image sequence, exact palette/font/spacing ledger and
+The current Updates card, status overlay and backup-warning references, palette/font/spacing ledger and
 responsive/accessibility behavior are embedded in
 [Part 01 section 10.8](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#108-update-dialog-templates).
 The complete action, backup and job contract is
@@ -285,19 +292,17 @@ The complete action, backup and job contract is
 These rules cover every current and future consuming application; names and
 versions in the images are illustrative data.
 
-Use the same overlay for the application and each consumed shared component:
+Use the update overlay for the application's own release:
 
 1. Entry opens the overlay and starts discovery; `Check again` repeats it.
 2. Distinguish checking, available, no newer compatible version, blocked,
    offline/stale and failed discovery. Show actual target/version and the
    checks performed; discovery never installs.
 3. An application's `Install <version>` opens the mandatory standard full-ZIP
-   warning. `Create backup and install` continues only after verified native
-   save completion. For an ordinary download, require explicit saved-copy
-   acknowledgement before enabling the separate Install action.
-4. A shared component's overlay names target/shared impact; its Install action
-   explicitly confirms the operation without an application backup warning,
-   creation or download.
+   warning. `Create backup and install` continues after verified native save
+   completion or ordinary download initiation, without a separate acknowledgement.
+4. Shared host components use `sudo updater tui`; its exact-target confirmation
+   identifies host impact and does not create an application ZIP.
 5. Accepted work shows a durable job ID, actual state/message and a measured
    or indeterminate progress bar. Disable duplicate mutations. Closing the
    overlay, reload and reconnect preserve observation of the existing job.
@@ -306,18 +311,18 @@ Use the same overlay for the application and each consumed shared component:
    no-update retains the completed job. Failure and rollback remain explicit.
 
 The application's own installed version and the update helper's version are
-separate observations. Each consumed component has its own version/check/
-install controls in the corresponding Settings card or named group. This
-includes the update helper itself and applies regardless of component role;
-unused agents receive no misleading connected/update card.
+separate observations. Service Settings provide no check/install control for
+Updater, Neptune, Gryphon or Wyvern; status and connection controls can remain
+where they serve the consumer workflow. Unused agents receive no misleading
+connected/update card.
 
 ### 5.2 Shared Scope And Recovery
 
 A shared-component confirmation identifies that the host instance may serve
 multiple applications. Authorized actions use typed operations and exact
 targets; they do not create another daemon or reset enrollment per consumer.
-Their ordinary check, install and final verification are reproducible in the
-connected application's interface without a native CLI.
+Their ordinary check, install and final verification are performed through
+the root TUI on the affected host.
 
 Remote operations show queued/waiting/offline until the target agent reports
 the selected running version and health. An accepted command or successful
@@ -337,8 +342,9 @@ states against the same measurements and acceptance matrix.
 ## 6. Copy, Feedback And Error Recovery
 
 - Use contextually labeled `Initialize`, `Repair Neptune pipelines`,
-  `Link Gryphon function`, `Change Gryphon function`, `Check for updates` and `Install <component>
-  <version>` consistently.
+  `Link Gryphon function`, `Change Gryphon function`, `Check for updates` and
+  `Install <application> <version>` consistently in their respective service
+  workflows.
 - Avoid `Connected` without naming what is connected: gateway, service
   function, Telegram user, archive pipeline and mirror pipeline are different
   states.
@@ -371,7 +377,7 @@ narrow viewport:
 - Logs: empty, initial loading, live newest-first entries, older-page loading,
   end of history, bounded export failure and revision-logging preference failure;
 - Updates: checking, initially current, available, blocked, save pending,
-  cancelled/failed save, acknowledgement required, install accepted,
+  cancelled/failed save, install accepted,
   determinate/indeterminate progress, applying/reconnecting, completed with
   recheck, rejected, rolled back and rollback failed;
 - keyboard order, visible focus, focus trap/restore, reduced motion and status

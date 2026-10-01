@@ -184,10 +184,11 @@ reporting and decision protocol in [Part 00](./PART_00_SYSTEM_UNIFICATION_SPECIF
       custom overlay around the native picker and validates before mutation.
 - [ ] External decryption-key recovery is documented and tested.
 - [ ] A real round-trip and a failed-restore rollback test pass.
-- [ ] Each service's Backup card owns manual backup/restore, initialization,
-      its own enabled/interval policy and explicit remote-run controls.
+- [ ] Each service's Backup card owns manual ZIP download/restore, Neptune
+      initialization and its own automatic enabled/interval policy. It has no
+      manual remote-run control; service-facing APIs reject new manual runs.
       The central panel exposes observation and authorized fleet/identity
-      administration, with no second schedule editor or service backup-run action.
+      administration, with no second schedule editor or backup-run action.
 - [ ] Encrypted-store initialization proves both independent workers: recovery
       ZIP and its single-file portable-vault mirror. Partial configuration is not success
       and exposes the repair workflow.
@@ -210,15 +211,19 @@ Record behavior for every declared archive, mirror or folder pipeline.
 - [ ] Enabling/changing interval calculates the next due without an implicit
       run. Disable prevents new scheduled runs while an accepted transfer
       reaches its safe terminal/retry state.
-- [ ] Manual remote run is independent of enabled state, does not reset next
-      due by default, returns one durable run ID and cannot overlap the same
-      project's backup. It is not the local download/update saved-copy gate.
+- [ ] `POST .../policy/runs` and legacy manual-run entry points cannot create
+      new service backup commands. Previously accepted commands may finish and
+      remain visible in read-only history; an old browser retry hint cannot
+      replay one after an upgrade.
 - [ ] Browser closure, application/agent restart and control-plane outage
       preserve the applied schedule and resumable transfer. Test bounded
       overdue recovery without a catch-up storm and display timezone correctly.
-- [ ] All required pipelines have independent policy/status and correct remote
-      receipts. Export, upload and committed success are different states;
-      a healthy archive worker cannot hide a failed required mirror worker.
+- [ ] All required pipelines have separate status and correct remote receipts.
+      Volt and Mastermind expose one enabled switch and one hourly interval;
+      `schedule-all` changes archive and mirror policy atomically under one
+      expected revision and request ID. Imported differences remain intact
+      until an explicit edit. Export, upload and committed success are different
+      states; a healthy archive worker cannot hide a failed required mirror.
 - [ ] A real logical backup/restore retains enabled state, interval, safe
       destination/profile intent and recording/UI preferences. Missing policy
       data fails export rather than silently omitting settings.
@@ -377,9 +382,10 @@ host-wide installation. New consuming installers ensure their local agents.
 
 ### 39.1 Universal Update Workflow Acceptance
 
-This matrix applies to every current/future application and consumed shared
-component's supported update surface. Gryphon and Wyvern use the root TUI for
-discovery and installation; their service Settings cards have no update operation. Use the authoritative
+This matrix applies to every current/future application and the root TUI for
+shared host components. Updater, Neptune, Gryphon and Wyvern use the root TUI
+for discovery and installation; their service Settings cards have no update
+operation. Use the authoritative
 [visual ledger and embedded examples](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#108-update-dialog-templates),
 [backup lifetime](./PART_03_BACKUP_AND_RECOVERY.md#132-backup-lifetime-during-an-application-update)
 and [behavior contract](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md#34-operator-update-ui).
@@ -389,7 +395,8 @@ that an arbitrary existing implementation has passed.
 - [ ] On a browser update surface, opening `Check for updates` opens the overlay
       immediately and sends one discovery request. `Check again` sends a fresh
       request; repeated clicks and stale/out-of-order responses do not duplicate
-      work or change target. The root TUI performs equivalent Gryphon and Wyvern checks.
+      work or change target. The root TUI performs equivalent checks for all
+      four shared host components without selecting a service.
 - [ ] Test no newer version, a valid newer version, incompatible version,
       unknown installed version, offline source, unauthorized request, bad
       provenance, unavailable helper and unsupported protocol independently.
@@ -398,23 +405,22 @@ that an arbitrary existing implementation has passed.
       and exact-target binding reject draft/prerelease, downgrade, wrong
       component and same-version replacement. The helper independently verifies
       the signed manifest and actual artifact bytes before mutation.
-- [ ] Consumed agents have their applicable scoped Settings controls; Gryphon
-      and Wyvern visual groups direct the operator to the root TUI and cannot
-      start check/install. Application and component versions remain distinct;
-      unused components do not receive fabricated ready/update cards.
+- [ ] Shared-component Settings controls and service-token update routes cannot
+      start Updater, Neptune, Gryphon or Wyvern check/install. Status groups
+      direct the operator to the root TUI. Application and component versions
+      remain distinct; unused components receive no fabricated ready card.
 - [ ] Application Install opens the mandatory full-ZIP warning. Cancel/Close
-      before submission leaves the running application unchanged. Creating the
-      backup alone or starting its download cannot pass the save gate.
+      before submission leaves the running application unchanged. The combined
+      action creates and downloads the backup before starting installation.
 - [ ] Native save success, picker cancellation, denied permission, write
-      failure and ordinary-download fallback are exercised. Fallback requires
-      a separate unchecked acknowledgement; initiating download is not saved.
-- [ ] The combined `Create backup and install` action continues only after
-      native write/close succeeds. The ordinary-download fallback requires
-      explicit saved-copy acknowledgement and activation of `Install <version>`.
+      failure and ordinary-download fallback are exercised. Fallback starts
+      installation from the same action without claiming the ZIP is saved.
+- [ ] The combined `Create backup and install` action continues after native
+      write/close or ordinary download initiation, without another confirmation.
       Filename, size, selected target and recovery consequences remain visible
       without exposing archive contents; cancelled preparation cannot submit.
 - [ ] Wrong ZIP bytes, wrong target/profile, expired/malformed receipt,
-      missing acknowledgement, oversized body and archive-expansion abuse
+      oversized body and archive-expansion abuse
       fail before mutation. The accepted ZIP equals the saved operator bytes;
       automatic backup alone and a newly generated second snapshot cannot pass.
 - [ ] Receipt/ZIP data never enter persistent browser storage, cache, URLs or
@@ -453,8 +459,8 @@ that an arbitrary existing implementation has passed.
       reconciliation exposes an actionable outcome; recovery after volatile
       backup loss requests the original operator copy instead of pretending to
       resume with an unavailable archive.
-- [ ] Shared-component updates reproduce the same overlay, explicit target/
-      impact confirmation, progress, reconnect and terminal checks without an
+- [ ] Shared-component updates in the root TUI retain explicit target/impact
+      confirmation, progress, reconnect and terminal checks without an
       application backup. Configuration, tokens and registrations survive; a
       shared instance is not duplicated or re-enrolled per consumer.
 - [ ] Remote component acceptance/waiting/check-in is not completion. The

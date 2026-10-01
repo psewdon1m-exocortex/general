@@ -52,7 +52,7 @@ rollback and rollback failure remain explicit in the same operator workflow.
 
 ### 13.2 Backup Lifetime During An Application Update
 
-The universal update warning and its save gate are defined in
+The universal update warning and one-click backup sequence are defined in
 [Part 01 section 10.8](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#108-update-dialog-templates)
 and [Part 05 section 34.3](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md#343-mandatory-application-backup-gate).
 They use this Part's standard full logical ZIP. A pre-update export MUST NOT
@@ -61,8 +61,8 @@ dump, or introduce a second incompatible archive format.
 
 The same application-owned builder serves manual download, automatic remote
 backup and update preparation. Each export captures a consistent recovery point.
-Updating uses exactly the ZIP saved by the operator, not a second snapshot
-generated after save confirmation. The operator avoids edits between that
+Updating uses exactly the ZIP sent to the operator's browser, not a second snapshot
+generated after download initiation. The operator avoids edits between that
 recovery point and installation; a later rollback may discard newer changes.
 When writers can run concurrently, the application must define and enforce its
 snapshot/write-barrier policy rather than promise zero data loss.
@@ -70,7 +70,7 @@ snapshot/write-barrier policy rather than promise zero data loss.
 | Stage | Allowed location and lifetime | Required observable result |
 | --- | --- | --- |
 | Standard update export | Bounded application memory or private verified tmpfs while creating/streaming | Authorized complete ZIP with filename, size and SHA-256 |
-| Browser save | Native save stream or temporary browser memory/object URL until save and submission/cancellation | Verified save completion, or a separate explicit saved-copy acknowledgement |
+| Browser download | Native save stream or temporary browser memory/object URL until download and submission/cancellation | Native write completion, or ordinary download initiation without a second operator action |
 | Durable manual recovery copy | Operator's computer | Exact saved ZIP kept for the documented recovery window |
 | Accepted application update | Helper process memory until the operation and any automatic recovery terminate | Receipt matches scope, selected version, size, checksum and request ID |
 | Path-based recovery tool | Private verified tmpfs, directory mode `0700`, file mode `0600`, only while that tool runs | Removal in success/error/cancellation cleanup; no fallback to a disk-backed temporary directory |
@@ -119,7 +119,7 @@ policy only after the operator has been told to preserve needed copies.
 
 An ordinary reboot preserves the installed service and its persistent state;
 it does not require importing backups. Shared-component binary updates skip
-the application ZIP/save gate while preserving their own configuration and
+the application ZIP download step while preserving their own configuration and
 bindings through a verified upgrade/recovery contract.
 
 ## 14. What A Backup Must And Must Not Contain
@@ -148,6 +148,13 @@ section is either consumed or explicitly labeled diagnostic-only.
 
 Backup schedules are now authored in the owning service, as specified in
 [Part 09 section 5](./PART_09_SERVICE_AGENTS_DEPLOYMENT_AND_LIFECYCLE.md#5-ongoing-neptune-interaction).
+Kernel, Chronos, Saturn and Laboratory use the basic recovery ZIP schedule.
+Volt and Mastermind have archive and mirror pipelines with independent
+execution status; one enabled control and hourly interval in the owning
+service Settings atomically update both schedules. Saturn Synchronization
+shows policy state without an editor, and Updater TUI does not set the backup
+interval. The implemented flow is detailed in
+[Backup and recovery mechanism](./backup_and_recovery_mechanism.md).
 If the authoritative policy is stored through a control-plane backend, the
 service export must obtain that scoped policy consistently or fail explicitly;
 an unavailable dependency is not permission to omit user settings.

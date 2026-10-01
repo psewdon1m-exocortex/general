@@ -4,7 +4,7 @@
 Settings проекта, локальным Neptune и Saturn, а также обратный поток
 восстановления проекта из сохранённого ZIP.
 
-Состояние реализации и схемы сверены по исходникам на 2026-09-20. Нормативные
+Состояние реализации и схемы сверены по исходникам на 2026-10-01. Нормативные
 требования к составу архива, безопасности ZIP и restore находятся в
 [Part 03. Backup And Recovery](./PART_03_BACKUP_AND_RECOVERY.md).
 
@@ -17,8 +17,17 @@ Settings проекта, локальным Neptune и Saturn, а также о�
   routes `/schedule` и `/runs` возвращают HTTP 426.
 - Запись policy использует `requestId` и `expectedRevision`, поэтому повтор
   запроса идемпотентен, а конкурентное изменение возвращает conflict.
-- Ручной `Back up to Saturn now` не запускает worker напрямую. Команда
-  сохраняется в Saturn, затем Neptune получает её через outbound check-in.
+- Кнопки ручной отправки в Saturn удалены. Сервисные маршруты ручного
+  запуска отклоняют новые команды; уже принятые запуски могут завершиться.
+- В текущих сервисах базовый профиль содержит recovery ZIP. Volt и Mastermind
+  дополнительно имеют независимый по исполнению mirror pipeline. Один
+  переключатель и часовой интервал в Settings этих сервисов атомарно меняют
+  расписания обеих линий; состояние и результаты показаны отдельно.
+- Saturn хранит authoritative policy, а экран Saturn Synchronization показывает
+  её состояние без редактирования расписания. Updater TUI также не задаёт
+  частоту бэкапов.
+- Проверка и установка релизов Neptune выполняются через `sudo updater tui`
+  на соответствующем хосте.
 - Registry Neptune расположен в `/var/lib/neptune/projects.json`, а не в
   `/etc/neptune/projects.json`.
 - Файлы credentials проекта находятся в `/etc/neptune/clients/`.
@@ -36,6 +45,26 @@ Settings проекта, локальным Neptune и Saturn, а также о�
 
 До настройки расписания проект должен быть enrolled в Saturn и зарегистрирован
 в единственном Neptune daemon данного Linux-хоста.
+
+Отвязка выполняется из карточки Backup самого сервиса. Backend передаёт в
+локальный Updater только свой зарегистрированный `project_id`; Updater создаёт
+наблюдаемую задачу и запрещает одновременную операцию жизненного цикла Neptune.
+Neptune атомарно выключает оба расписания и прекращает принимать новые задания,
+ожидает завершения уже принятых archive и mirror передач, удаляет только
+незавершённые локальные spool-файлы проекта и помечает их задачи как abandoned,
+затем через свой
+scoped Saturn producer token отключает удалённую identity. Saturn выключает
+desired policy, завершает ожидающие команды и старые setup codes, инвалидирует producer token и
+mirror/reader device credentials. Запись service identity и уже сохранённые
+архивы остаются для повторного подключения с новым setup code. После
+подтверждения Saturn Neptune удаляет только регистрацию этого проекта; Updater
+заменяет локальные файлы credentials недействующими значениями и удаляет его
+`/etc/neptune/projects/<project>.env`. Общий daemon и другие проекты не
+затрагиваются. При недоступности Saturn задача завершается ошибкой, проект
+остаётся с выключенными расписаниями и может повторить отвязку.
+Saturn хранит только хеш отозванного producer token для повторного подтверждения
+уже выполненной отвязки после потери ответа. Он не даёт доступ к архивам и
+удаляется при следующем enrollment.
 
 ```text
 Saturn → Backup/Synchronization enrollment
@@ -93,7 +122,7 @@ Neptune project registry
 control, export и Saturn producer credentials и не могут управлять чужой
 политикой или записывать архивы в чужой namespace.
 
-## 3. Настройка расписания и ручной запуск
+## 3. Настройка автоматического расписания
 
 ```text
 Settings проекта
@@ -101,18 +130,15 @@ Settings проекта
  │ пользователь:
  │
  ├─ включает Enable automatic backups
- ├─ задаёт interval в целых часах, от 1 до 8760
- └─ либо нажимает Back up to Saturn now
+ └─ задаёт interval в целых часах (для двух пайплайнов: 1–168)
  ▼
 Frontend проекта
  │
  ├─ GET <project-policy-api>
- ├─ PUT <project-policy-api>
- ├─ GET <project-policy-api>/runs
- └─ POST <project-policy-api>/runs
+ └─ PUT <project-policy-api>
  │
  │ сохраняет requestId только как hint для безопасного retry
- │ и каждые 5 секунд обновляет policy/run status
+ │ и каждые 5 секунд обновляет policy status
  ▼
 Backend проекта
  │
@@ -133,12 +159,6 @@ Backend проекта
  │      "enabled":true,
  │      "intervalHours":24,
  │      "expectedRevision":17,
- │      "requestId":"<uuid>"
- │    }
- │
- ├─ POST /v1/projects/<deployment-id>/policy/runs
- │    {
- │      "pipeline":"archive",
  │      "requestId":"<uuid>"
  │    }
  │
@@ -174,8 +194,7 @@ Saturn service-owned policy API
  │
  ├─ GET  /api/v1/neptune/agent/policy
  ├─ PUT  /api/v1/neptune/agent/policy
- ├─ GET  /api/v1/neptune/agent/policy/runs
- └─ POST /api/v1/neptune/agent/policy/runs
+ └─ GET  /api/v1/neptune/agent/policy/runs
  ▼
 Saturn policy database
  │
@@ -183,11 +202,7 @@ Saturn policy database
  ├─ expectedRevision защищает от lost update
  ├─ requestId обеспечивает idempotency
  ├─ schedule mutation увеличивает desired revision
- ├─ изменение interval не создаёт ручной run
- └─ manual run создаёт command:
-      id = requestId
-      kind = archive.run
-      state = pending
+ └─ изменение interval не создаёт немедленный run
 ```
 
 Ответ policy имеет форму:
@@ -228,6 +243,28 @@ Saturn policy database
 равно доказанному backup: UI отдельно показывает last seen, last success,
 NextRunAt, active state и latest error.
 
+### 3.1 Базовый и расширенный профили
+
+| Профиль | Текущие сервисы | Данные и управление |
+| --- | --- | --- |
+| Базовый | Kernel, Chronos, Saturn, Laboratory | Один recovery ZIP (`archive`). Settings меняет его `enabled` и целочисленный интервал 1–8760 часов через mutation `kind: "schedule", pipeline: "archive"`. |
+| Расширенный | Volt, Mastermind | Recovery ZIP (`archive`) и отдельное зеркало (`mirror`): `personal.volt` у Volt, дерево Vault у Mastermind. Одна пара контролов в Settings отправляет `kind: "schedule-all"` с `enabled`, целым `intervalHours` 1–168, `expectedRevision` и `requestId`; Saturn в одной транзакции записывает обе политики и одну новую revision. |
+
+У каждого расширенного пайплайна свои экспорт, состояние, `nextRunAt`,
+`lastSuccessAt` и ошибки. Успешный ZIP не скрывает сбой зеркала. При чтении
+ранее созданного профиля разные значения archive и mirror сохраняются и
+показываются как расхождение; чтение страницы само их не выравнивает.
+Следующее явное изменение общего переключателя или интервала согласует оба.
+Неизменённый импортированный mirror-интервал в минутах не округляется до
+часов. Restore сохраняет исходное намерение каждой линии и возобновляет
+исполнение только после проверки новой applied revision.
+
+Ручное `Create and download snapshot` сохраняет ZIP на компьютере оператора.
+Оно не запускает Neptune и не заменяет автоматическую отправку в Saturn.
+Сервисные `POST .../policy/runs` отклоняют новые ручные отправки; `GET` history
+остаётся доступным для наблюдения. Браузер удаляет сохранённые подсказки
+повтора старых `POST .../runs`, чтобы не отправить их после обновления UI.
+
 ## 4. Доставка policy и команд в Neptune
 
 ```text
@@ -267,7 +304,7 @@ Neptune
  ├─ атомарно применяет более новую revision к projects.json
  ├─ сохраняет applied revision
  ├─ сохраняет remote command journal в SQLite
- └─ выполняет archive.run только один раз для данного command ID
+ └─ ранее принятые archive.run/mirror.run выполняет только один раз для command ID
 ```
 
 Если Saturn временно недоступен, последнее уже применённое локальное расписание
@@ -280,7 +317,7 @@ Neptune
 Neptune BackupWorker
  │
  ├─ каждые 30 секунд проверяет локальный NextRunAt
- ├─ либо принимает полученный archive.run command
+ ├─ либо завершает ранее принятый archive.run command
  ├─ не запускает работу при policy_paused = true
  ├─ допускает только один активный archive run одного проекта
  └─ ограничивает общую параллельность значением MaxParallelProjects
@@ -505,7 +542,7 @@ Neptune Linux
  │    ├─ очищает SpoolPath в run metadata
  │    ├─ удаляет локальный ZIP
  │    ├─ для scheduled run ставит следующий NextRunAt через N часов
- │    ├─ manual run не сдвигает независимое расписание
+ │    ├─ ранее принятый manual run не сдвигает независимое расписание
  │    └─ передаёт success в следующем Saturn check-in
  │
  └─ network/restart/server/receipt error
@@ -545,7 +582,7 @@ authoritative данных. Отличается только transport destinat
 ```text
 Manual:    builder → browser
 Automatic: builder → Neptune spool → Saturn
-Update:    builder → browser save gate → Updater RAM/tmpfs
+Update:    builder → browser ZIP download → Updater RAM/tmpfs
 Restore:   любой совместимый ZIP → project inspect/restore workflow
 ```
 

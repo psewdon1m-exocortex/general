@@ -340,8 +340,8 @@ An application update request is accepted only when a non-empty backup within th
 limit matches its SHA-256. The implemented privileged boundary uses a 128 MiB
 decoded-byte maximum. The head signs a short-lived receipt binding the exact
 standard ZIP to its head ID, service, target version, request ID, size and SHA-256.
-The browser saves the ZIP and returns the same bytes with explicit saved-copy
-acknowledgement. The update helper verifies the receipt and checksum before mutation.
+The browser starts the ZIP download and returns the same bytes without a second
+operator action. The update helper verifies the receipt and checksum before mutation.
 Only job metadata is persisted; backup bytes remain in memory for the operation.
 Reusing the request ID with the same scope returns the existing job.
 Reusing it with a different target or payload is rejected, not interpreted as
@@ -401,10 +401,10 @@ content and names of added environment defaults, never a copied .env with secret
 
 The application uses its standard full ZIP builder for manual, automatic and
 pre-update exports. An update MUST use exactly the ZIP downloaded by the operator;
-creating a second snapshot during apply is prohibited. Install stays blocked
-until the browser save API has completed, or, where unavailable, the user has
-explicitly confirmed that the initiated ZIP download is saved. Download initiation
-alone MUST NOT be represented as proof of a disk save.
+creating a second snapshot during apply is prohibited. With a native save API,
+installation waits for the write and close. Otherwise the browser starts the
+ordinary ZIP download and continues automatically. Download initiation MUST NOT
+be represented as proof of a disk save.
 
 Update archives MUST NOT be retained on the application host. Their durable homes
 are the user's computer and the designated remote backup storage through the
@@ -533,9 +533,9 @@ verification, or a smoke test complete rollback validation.
 
 ## 34. Operator Update UI
 
-This contract applies to every current and future application and every
-consumed shared component. It does not define a fixed product list. The
-permanent Settings card follows
+This contract applies to every current and future application update. Shared
+host components use the root TUI workflow in section 34.6. The permanent
+application Settings card follows
 [Part 01 section 5.5](./PART_01_INTERFACE_AND_INTERACTION_UNIFICATION.md#55-settings-information-architecture).
 The six embedded examples, colors, fonts, dimensions, responsive rules and
 historical-image corrections are authoritative in
@@ -545,12 +545,12 @@ historical-image corrections are authoritative in
 
 The application Updates card shows its installed version, local update-helper
 reachability and approved registry/release-policy reachability independently.
-Each consumed shared component has its own Settings card or clearly named
-group with its installed version, health and `Check for updates` control.
-An unused component does not receive a misleading installed/healthy card.
-The chosen component remains visible throughout discovery, confirmation and
-job observation; an application version and a helper version are never
-interchanged.
+Its check/install control targets that application. Consumed shared components
+may show health or installed version in their connection cards, but their
+service Settings cards do not expose release check/install controls. An unused
+component does not receive a misleading installed/healthy card. The chosen
+application remains visible throughout discovery, confirmation and job
+observation; an application version and a helper version are never interchanged.
 
 If updates belong exclusively to an external package manager or administrator,
 name that mechanism and the last verified version. Explain why local Install
@@ -602,8 +602,8 @@ the full ZIP must be saved on the operator's computer.
 
 The required sequence is:
 
-1. `Create backup and install` explicitly authorizes the named target after
-   the save gate. It creates a fresh standard full ZIP through the same
+1. `Create backup and install` explicitly authorizes the named target. It creates
+   a fresh standard full ZIP through the same
    application-owned builder used by manual and automatic backups. Export is
    authorized, bounded and internally consistent. Only one creation is pending
    for this confirmation.
@@ -613,27 +613,22 @@ The required sequence is:
    Picker cancellation, denied permission, failed generation or failed writing
    leaves installation blocked and offers a retry.
 3. Where verified file saving is unavailable, initiate the normal browser
-   download and present a separate, initially unchecked acknowledgement:
-   `I saved <filename> on my computer`. The interface cannot detect an
-   ordinary download's completion and MUST NOT claim otherwise. Starting a
-   request, creating an object URL or clicking a download link is not proof.
-4. In that fallback, only explicit saved-copy acknowledgement enables the
-   separate `Install <version>` action; its activation submits the update.
-   A successful verified save may continue the combined action from step 1
-   without an unnecessary extra confirmation. Both paths must bind to the
-   original explicit target/intent and show filename, size and save outcome
-   without exposing archive content. A cancelled/closed preparation never
-   continues automatically.
+   download and submit the update from the same action. The interface cannot
+   detect an ordinary download's completion and MUST NOT claim that the ZIP
+   was saved. There is no second acknowledgement, file selection or Install
+   action. Both paths bind to the original explicit target and show the
+   download state without exposing archive content. A cancelled preparation
+   does not continue.
 5. The application authenticates a short-lived receipt that binds profile,
    component, selected version, request ID, exact ZIP size and SHA-256. The
-   helper verifies scope, expiry, acknowledgement and byte equality before
+   helper verifies scope, expiry and byte equality before
    mutation. The receipt contains no signing secret; its key stays server-side.
 
 The browser returns the same saved ZIP bytes; the application MUST NOT create
 a replacement snapshot at submission. An automatic remote backup alone does
-not satisfy this operator-save gate. Changing target/profile, expired receipt,
-mismatched bytes or loss of the pending browser state invalidates the gate and
-requires a fresh authorized preparation; it never silently unblocks Install.
+not satisfy this one-click download sequence. Changing target/profile, expired
+receipt, mismatched bytes or loss of the pending browser state requires a fresh
+authorized preparation.
 Receipt lifetime is bounded (reference default: 15 minutes) and communicated
 when expiry affects the action.
 
@@ -731,18 +726,16 @@ explicit restore, not to every restart.
 Every consumed shared component, including the update helper itself, uses
 the same exact-version selection, durable job and error/reconnection semantics.
 The root TUI provides Updater check/self-update and Neptune/Gryphon/Wyvern
-install/check/update without a registered application. Where a scoped
-application Settings control is allowed, it identifies the shared host impact
-and delegates to the same host-wide operation; it never supplies the release
-URL or chooses a consumer as release authority.
+install/check/update without a registered application. The service Settings
+pages do not expose shared-component release controls. Updater, Neptune,
+Gryphon and Wyvern service APIs reject release checks and updates in favor
+of the root TUI.
 
-The only application-backup-gate exception is a typed shared-component update:
-no application ZIP creation/download, saved-copy acknowledgement or backup
-receipt. Before activation, the existing overlay names the component, exact
-target and shared impact; clicking `Install <version>` is the explicit
-confirmation and proceeds to the same durable job observation. Do not insert
-an empty application-backup warning for this path. This exception is not a way
-to classify an application upgrade as a helper operation.
+Host component updates have no application ZIP creation/download, saved-copy
+acknowledgement or backup receipt. The root TUI names the component, exact
+target and shared impact before confirmation, then observes the durable job.
+This exception is not a way to classify an application upgrade as a helper
+operation.
 
 The helper preserves agent configuration, registrations and tokens through its
 signed upgrade/recovery contract. Updates to a shared instance do not reinstall
@@ -753,9 +746,13 @@ never requested.
 
 The full ordinary **application update** workflow MUST be reproducible through
 the connected application's UI without a native CLI. Shared host components
-have their root TUI workflow, with only explicitly permitted scoped service
-controls. Both surfaces keep exact-target confirmation and durable job
-observation; their supported operations are documented separately.
+have their root TUI workflow. Both surfaces keep exact-target confirmation
+and durable job observation; their supported operations are documented
+separately.
+
+The current request, backup and host-component sequences are mapped in
+[Service update mechanism](./service_update_mechanism.md). This implementation
+map does not replace the requirements in this Part.
 
 ## 35. Compatibility Migration To The Unified Update Workflow
 
@@ -777,8 +774,8 @@ receipt, use a tested compatibility bridge:
 3. Before changing legacy retention or each application, save a fresh standard
    full ZIP on the operator's computer. The runbook makes any legacy archive
    cleanup explicit before it can remove older recovery copies.
-4. The authorized bridge accepts the exact saved ZIP, explicit saved-copy
-   acknowledgement, registered application identity and exact target version.
+4. The authorized bridge accepts the exact downloaded ZIP, the original
+   one-click authorization, registered application identity and exact target version.
    It constructs the same scoped receipt and submits the normal authenticated
    update protocol. It does not bypass signature, digest, backup or health
    validation, and it preserves the live environment and application data.

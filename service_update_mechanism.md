@@ -1,14 +1,15 @@
 # Механизм обновления сервисов Exocortex
 
-Этот документ описывает целевой сквозной процесс обновления
-сервисов на одном Linux-хосте: от кнопки в `Settings` до проверки новой версии,
-обязательного сохранения резервной копии, установки, health-check и rollback.
+Этот документ описывает два действующих потока обновления на одном Linux-хосте:
+приложение обновляется из собственного `Settings` с сохранением полного ZIP,
+а общие хостовые компоненты — из `sudo updater tui` без ZIP приложения.
+Состояние потоков сверено по исходникам на 2026-10-01.
 
 Нормативные требования находятся в
 [Part 05. CI, Releases And Local Updates](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md)
 и [Part 13. Host Dependencies](./PART_13_HOST_DEPENDENCIES_AND_EXTENSION_GUIDE.md).
-Расхождения действующего кода с этой схемой перечислены в аудите установки;
-нижеследующие правила задают контракт для пакетной реализации.
+Нижеследующие правила задают границу полномочий и порядок проверки релиза,
+установки, health-check и rollback.
 
 ## 1. Участники
 
@@ -25,7 +26,7 @@
 - **Хостовые компоненты** — общий Updater, Neptune, Gryphon и Wyvern. Они
   обновляются через тот же daemon, но без backup данных приложения. Root TUI
   предоставляет проверку/обновление всех четырёх и установку трёх служб без
-  зарегистрированного сервиса.
+  зарегистрированного сервиса. Карточки сервисов не запускают их обновления.
 - **Mastermind** — особый групповой сервис из Core, Runtime и Worker; для него
   используется потоковый saved-copy protocol и общий writer barrier.
 
@@ -172,13 +173,11 @@ Backup receipt
  │
  └─ обычная browser download
       ├─ инициирует скачивание ZIP
-      ├─ показывает отдельный checkbox
-      │  I have saved the ZIP on my computer
-      └─ включает Install только после явного подтверждения
+      └─ сразу передаёт тот же ZIP в пайплайн установки
 ```
 
-ZIP не пересоздаётся между сохранением и установкой. Браузер возвращает backend
-те же байты, которые сохранил оператор. Ни сервис, ни Updater не оставляют
+ZIP не пересоздаётся между скачиванием и установкой. Браузер возвращает backend
+те же байты, которые были отправлены на скачивание. Ни сервис, ни Updater не оставляют
 постоянную копию этого архива на диске хоста.
 
 ## 4. Передача установки в Updater
@@ -391,8 +390,11 @@ persistent volumes остаются установленными. Копия н�
 ## 7. Обновление общих helper-компонентов
 
 Updater, Neptune, Gryphon и Wyvern являются общими компонентами хоста. Для них
-нет backup gate приложения: они не заменяют данные конкретного сервиса. Схема
-ниже описывает разрешённые сервисные UI-потоки; Gryphon и Wyvern из них исключены.
+нет backup gate приложения: они не заменяют данные конкретного сервиса. Их
+проверка и обновление выполняются через `sudo updater tui` на том хосте, где
+установлен компонент. Из Settings сервиса обновляется только само приложение.
+Версии и доступность общих компонентов могут отображаться как состояние, но
+карточки сервисов и Saturn Synchronization не запускают проверку или установку.
 
 Для всех четырёх хостовых компонентов Updater разрешает источник релиза через
 собственное машинное подключение к Kernel Register. Если подключение
@@ -405,45 +407,37 @@ head. Сам Updater обновляется с нулём зарегистрир
 запомнить свой URL как изменяемый резервный источник.
 
 ```text
-Settings → карточка нужного helper
+sudo updater tui на нужном хосте
  │
- ├─ POST <service-update-api>/check
- │    {"component":"updater|neptune"}
- │
- └─ Updater: POST /v2/check
-      {
-        "head_id":"<registered-head-id>",
-        "component":"<helper>"
-      }
+ ├─ выбирает Updater / Neptune / Gryphon / Wyvern
+ ├─ проверяет версию через root-only операторский API
+ │    POST /v1/check, без выбора приложения/head
+ ├─ показывает точную доступную версию и источник релиза
+ └─ после явного выбора версии отправляет POST /v1/actions
  ▼
-Окно Install <version>
+Updater host release resolver
  │
- │ предупреждает, что helper общий для хоста
- │ backup ZIP приложения не создаётся
- ▼
-Backend сервиса
- │
- └─ POST /v2/components/<helper>/updates
-      {
-        "head_id":"<registered-head-id>",
-        "version":"<exact-version>",
-        "request_id":"<uuid>"
-      }
- ▼
-Updater
- │
- ├─ проверяет, что head действительно потребляет helper
- ├─ повторно разрешает exact signed release
- ├─ создаёт durable component job
- └─ выполняет component-specific replacement
+ ├─ повторно разрешает и проверяет подписанный релиз и checksum
+ ├─ создаёт durable host component job
+ ├─ выполняет component-specific replacement и health-check
+ └─ при ошибке возвращает прежние проверенные файлы/конфигурацию
 ```
+
+Отдельные блоки проверки/установки Updater и Neptune удалены из сервисных
+карточек Updates/Backups; у приложения остаётся собственный update flow.
+Сервисные запросы к Updater `/v2/check` и `/v2/components/<component>/updates`
+для четырёх общих компонентов отклоняются. Старые сервисные маршруты
+`/v1/components/neptune-linux/check` и `/update` также отклоняются.
+Принятые ранее задания и их статус остаются наблюдаемыми; старый мост
+удалённого исполнения Neptune сохраняется для уже поставленных команд.
 
 Gryphon: один экземпляр и одна версия на хосте. Он устанавливается собственным
 bootstrap, из TUI или синхронно установщиком Chronos/Saturn/Mastermind. Общая
 проверка и обновление идут через root-only operator socket без выбора сервиса.
 Запросы проверки/обновления из Settings не выполняются; карточка указывает
 путь через TUI. Установщик потребителя создаёт только его scoped client.
-Токен бота и `/link` остаются отдельными действиями владельца.
+Регистрация адаптера и первичный `/link` выполняются через TUI; сервис затем
+выбирает уже подключённый адаптер в своих настройках без повторного `/link`.
 
 Wyvern: один локальный экземпляр и одна версия на хосте по умолчанию. Его
 bootstrap и TUI устанавливают runtime без Kernel и потребителя; Laboratory
@@ -629,13 +623,13 @@ Rollback уже успешно установленной версии Mastermin
 
 | Проект | Application-side update API | Особенности |
 | --- | --- | --- |
-| Kernel | `/api/update-flow/*` | Общий overlay; service + Updater + Neptune |
-| Volt | `/api/v1/update-flow/*` | Общий overlay; service + Updater + Neptune |
-| Chronos | `/api/update-flow/*` | Python-реализация того же saved-copy protocol; Gryphon обновляется отдельно через TUI |
-| Laboratory | `/api/update-flow/*` | Общий overlay; Updater + Neptune; Wyvern управляется через TUI; offline restore |
-| Saturn | `/operator/updates/flow/*` | Собственный NestJS controller; отдельные api/worker/web images и migration |
+| Kernel | `/api/update-flow/*` | Обновление Kernel; общий overlay и saved-copy protocol |
+| Volt | `/api/v1/update-flow/*` | Обновление Volt; общий overlay и saved-copy protocol |
+| Chronos | `/api/update-flow/*` | Обновление Chronos; Python-реализация saved-copy protocol |
+| Laboratory | `/api/update-flow/*` | Обновление Laboratory; saved-copy protocol и offline restore |
+| Saturn | `/operator/updates/flow/*` | Обновление Saturn; собственный NestJS controller и отдельные api/worker/web images |
 | Perimetr | `/v1/updater/*` | Собственные `check`, `prepare`, `install`, `jobs`, `rollback`; тот же `/v2` Updater protocol |
-| Mastermind | `/api/owner/updates/*` и `/api/owner/helper-updates/*` | Group preparation, writer barrier, encrypted saved copy и streaming spool; Wyvern управляется через TUI |
+| Mastermind | `/api/owner/updates/*` | Group preparation, writer barrier, encrypted saved copy и streaming spool; helper release routes отклоняются |
 
 Типовой набор application-side маршрутов выглядит так:
 

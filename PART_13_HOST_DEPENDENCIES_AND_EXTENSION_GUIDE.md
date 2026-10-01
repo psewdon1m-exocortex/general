@@ -14,7 +14,7 @@ release/enrollment is a migration gap, not an alternative contract.
 | Layer | Current components | Host cardinality | Ownership |
 | --- | --- | --- | --- |
 | Base | Updater | Exactly one per Linux host | Owns privileged installation, verified release operations, host release-source settings and its own Kernel machine connection. It installs and self-updates with no application head. |
-| Shared host agents | Neptune Linux, Gryphon, Wyvern | At most one local instance of each per Linux host | Own their runtime, identities and host-level configuration. Each installs independently through its own exact-version bootstrap or Updater TUI. Its bootstrap ensures Updater. |
+| Shared host agents | Neptune Linux, Gryphon, Wyvern, Window | At most one local instance of each per Linux host | Own their runtime, identities and host-level configuration. Each installs independently through its own exact-version bootstrap or Updater TUI. Its bootstrap ensures Updater. |
 | Application services | Kernel, Volt, Chronos, Saturn, Laboratory, Perimetr, Mastermind | Independent service deployments | Own their application state and service head. Their installer ensures Updater and each declared host agent before reporting local installation success. |
 
 Neptune Windows has a separate client lifecycle and is outside this Linux host
@@ -32,15 +32,19 @@ mandatory local agent for its default placement; an empty cell means no such
 dependency. This is an installation contract, not a claim that current
 installers already satisfy it.
 
-| Application service | Neptune Linux | Gryphon | Wyvern |
-| --- | :---: | :---: | :---: |
-| Kernel | ✓ |  |  |
-| Volt | ✓ |  |  |
-| Chronos | ✓ | ✓ |  |
-| Saturn | ✓ | ✓ |  |
-| Laboratory | ✓ |  | ✓ |
-| Perimetr |  |  |  |
-| Mastermind | ✓ | ✓ | ✓ |
+| Application service | Neptune Linux | Gryphon | Wyvern | Window |
+| --- | :---: | :---: | :---: | :---: |
+| Kernel | ✓ |  |  |  |
+| Volt | ✓ |  |  |  |
+| Chronos | ✓ | ✓ |  |  |
+| Saturn | ✓ | ✓ |  |  |
+| Laboratory | ✓ |  | ✓ |  |
+| Perimetr |  |  |  |  |
+| Mastermind | ✓ | ✓ | ✓ |  |
+
+Window has no application consumer edges in its first release. Its paired
+development-PC reader is an operator-granted diagnostic client, not an
+application dependency or an installation prerequisite for another agent.
 
 The machine-readable dependency map in Updater and each consuming release
 bundle MUST agree with this matrix. A new service changes both through one

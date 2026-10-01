@@ -881,7 +881,7 @@ the [Appearance card crop](<./src/example - settings - appearance/example - sett
 [Appearance on the source canvas](<./src/example - settings - appearance/example - settings - appearance.png>),
 the [basic Security card](<./src/example - settings - securite/example - settings - securite - basic.png>),
 the [advanced Security card](<./src/example - settings - securite/example - settings - securite - advanced.png>),
-[Backup](./src/example-backup.png), [Updates](./src/example-updates.png) and
+[Backup](<./src/example - settings - backups/example - settings - backups.png>), [Updates](<./src/example - settings - updates/example - settings - updates.png>) and
 [Logs](./src/example-logs.png). The connected-service references are
 [Gryphon Connection before binding](<./src/example - settings - gryphon/example - settings - gryphon - not connected.png>),
 [Gryphon Connection after binding](<./src/example - settings - gryphon/example - settings - gryphon - сonnected.png>),
@@ -1092,7 +1092,7 @@ defined in [Part 03](./PART_03_BACKUP_AND_RECOVERY.md).
 Backup-agent-aware services append the local agent status and contextual
 initialization/repair action defined by the service-agent UI guide. The owning
 service's Backup card is the sole operator editor for its automatic backup
-schedule and the place for its explicit remote backup action. The central
+schedule. The central
 storage/fleet panel may observe those values but MUST NOT offer another
 schedule editor or competing run button. Archive and dedicated-mirror
 policies remain separate, scoped to the owning service and persisted in its
@@ -1108,13 +1108,13 @@ Every application consuming the LLM gateway uses the requested display title
 `Wyverne Connection`. These display labels do not rename executable, API,
 repository or configuration identifiers.
 
-The Gryphon card has one `Gryphon bot binding` group. It shows local agent and
-applied-connection reachability, the applied bot alias or `none`, and one
+The Gryphon card has one `Gryphon adapter binding` group. It shows local agent and
+applied-connection reachability, the applied adapter alias or `none`, and one
 `Link Gryphon function` / `Change Gryphon function` action. That action opens
-the bot-selection overlay; choosing a ready, paired bot applies its verified
-Telegram account to this service immediately. Each service has one selected bot,
-and the same bot can be selected again to restore a revoked service binding.
-Bot registration, the one-time Telegram `/link CODE` pairing, and shared
+the adapter-selection overlay; choosing a ready, paired adapter applies its verified
+Telegram account to this service immediately. Each service has one selected adapter,
+and the same adapter can be selected again to restore a revoked service binding.
+Adapter registration, the one-time Telegram `/link CODE` pairing, and shared
 Gryphon version checks/updates use `sudo updater tui`; these controls are
 absent from service Settings. The service card never issues another `/link`.
 Neptune retains its scoped Initialize workflow. The `Wyverne Connection` card
@@ -1144,13 +1144,15 @@ publication information, release notes, compatibility and backup readiness,
 then exposes the explicit update-initiation button. Merely discovering a
 release never starts installation. Detailed trust, rollback and machine-state
 requirements are defined in [Part 05](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md).
-The main-module update, local update-helper self-update and shared-agent component update
-paths are labeled separately and never share an ambiguous Apply action.
+The application update path uses the browser overlay. Updater, Neptune,
+Gryphon and Wyvern release checks and installs run only in `sudo updater tui`
+on the host; service Settings provide no update action for these shared
+components.
 
 The complete universal update component, its measured geometry and all six
 embedded reference images are defined in
-[section 10.8](#108-update-dialog-templates). This contract applies to every
-current and future application and every shared component it consumes.
+[section 10.8](#108-update-dialog-templates). This browser-dialog contract
+applies to each application's own release flow.
 The backup gate, live job lifecycle and first-transition exception are defined
 in [Part 05 sections 34–35](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md#34-operator-update-ui).
 
@@ -2686,33 +2688,39 @@ title accent consistently.
 
 #### 10.5.3 Backup Card
 
-![Backup card with manual recovery and service-owned automatic scheduling](./src/example-backup.png)
+![Backup card reference with separate archive and mirror status](./src/example%20-%20settings%20-%20backups/example%20-%20settings%20-%20backups%20-%20advanced.png)
 
-Source: `1610x782px`. Manual actions are `326x40px` at `(39,156)`
-and `(39,307)`. The agent status row is approximately `1538x40px` at
-`(39,457)`. The pictured run action is `342x67px` at `(317,520)`;
-its canonical minimum is `342x68px`, stretching alongside the accessible
-two-row schedule-control group. The component update action is `326x40px`
-at `(39,690)`.
+Use the reference layout while retaining each service's actual snapshot scope,
+restore flow and theme. Laboratory retains its original editorial palette.
+The card has no manual Saturn transfer or Neptune update action.
 
 Groups appear in this order:
 
-1. `System snapshot`: actual logical scope/exclusions and
-   `Create and download snapshot`.
-2. `Restore snapshot`: description and `Browse local snapshot archive`,
-   opening the restore overlay and native picker. The repeated
-   `System snapshot` heading in the image is a draft wording error.
-3. `Automatic backup to <storage>`: explanation, agent status, contextual
-   Initialize/Repair, schedule enable, interval and `Back up to <storage> now`.
-4. `Neptune version`: actual installed component version and
-   `Check Neptune for updates`.
+1. `Manual snapshot`: actual logical scope/exclusions and
+   `Create and download snapshot`. Volt also offers `Download personal.volt`.
+2. `Automatic backup to <storage>`: explanation, agent status, separate
+   observed status for each available pipeline, one schedule enable and
+   interval control, then contextual Link/Repair or Unlink action.
+3. `Restore snapshot`: description and `Browse local snapshot archive`,
+   opening the restore overlay and native picker. The reference labels this
+   group `System snapshot`; the service card names the restore action explicitly.
+
+The connected state shows a red `Unlink Neptune agent` button. Confirmation
+starts a service-scoped Updater job: Neptune stops new archive and mirror work,
+waits for accepted transfers, asks Saturn to revoke that service's producer,
+mirror and reader credentials, then removes only that service's registration.
+The shared daemon and other services remain connected; saved Saturn archives
+remain available. During `unlinking`, Link is blocked and Unlink offers retry
+if the previous job failed; Updater serializes lifecycle jobs. Reconnection
+requires a fresh setup code.
 
 Initialization is shown when the agent is absent or this service is not
 enrolled. Its completion exposes editable scheduling; an offline agent does
 not masquerade as absent. Healthy reachability, profile completeness, schedule
 saved/applied and last successful remote commitment are distinct observations.
-For several pipelines, repeat a named schedule/status group per pipeline;
-never share one checkbox between a recovery archive and a dedicated mirror.
+For Volt and Mastermind, show separate named archive and mirror status groups.
+One checkbox and one hourly interval change both schedules atomically; each
+pipeline keeps its own execution state and last successful commitment.
 
 The checkbox persists enabled state on explicit change. Interval is integer
 hours with `min=1`, `step=1` and the advertised server maximum, if any;
@@ -2722,29 +2730,29 @@ silently clamp them. A failed save restores the last confirmed control value
 and retains an inline explanation. Disable duplicate commits while pending.
 
 Automatic backup is initially off for a genuinely new profile; imported
-profiles preserve their actual values. `Back up now` remains an independent
-explicit run when scheduling is off. Enabling or changing interval does not
-secretly invoke it. Show desired/applied policy, next run, last success and
+profiles preserve their actual values. Enabling or changing interval does not
+start a backup immediately. Show desired/applied policy, next run, last success and
 current job/error near the controls without exposing credentials. Central
-storage no longer owns editable schedule controls. Semantics and handover are
+storage no longer owns editable schedule controls. Neptune release checks and
+updates are available only through `sudo updater tui` on the host. Semantics and handover are
 in [Part 10 section 2](./PART_10_SERVICE_AGENTS_UI_AND_OPERATOR_WORKFLOWS.md#2-backup-and-neptune-panel).
 
 #### 10.5.4 Updates Card
 
-![Updates card with application and update-helper version controls](./src/example-updates.png)
+![Updates card reference for the application release](<./src/example - settings - updates/example - settings - updates.png>)
 
-Source: `1610x566px`. Status rows are approximately `1538x40px` at
-`(39,191)` and `(39,243)`; application and helper check actions are
-`326x40px` at `(39,318)` and `(39,470)`.
+The card contains only the application release action and its status. The
+removed Updater version block does not reserve space; card height follows its
+content.
 
 `Update pipeline` describes release discovery and the local executor.
 Application version appears first, its value in accent. Show update-helper
 and registry reachability as separate rows. The first check action targets the
-application. A distinct `Updater version` group and second check action
-target the shared update helper. Changing one version must not rewrite the
-other. An unavailable observation is not a fabricated version or healthy zero.
-Both actions open the [section 10.8 update overlay](#108-update-dialog-templates),
-which starts discovery; only an application update has the full-ZIP save gate.
+application. Updater release checks and self-updates use `sudo updater tui` on
+the host; the service GUI has no separate Updater version or update controls.
+An unavailable observation is not a fabricated version or healthy zero. The
+application action opens the [section 10.8 update overlay](#108-update-dialog-templates)
+and downloads the full ZIP before submitting the update.
 
 #### 10.5.5 Gryphon Connection Before And After Binding
 
@@ -2752,28 +2760,28 @@ which starts discovery; only an application update has the full-ZIP save gate.
 
 ![Gryphon Connection after a service function is linked](<./src/example - settings - gryphon/example - settings - gryphon - сonnected.png>)
 
-Both cards have one `Gryphon bot binding` group, two full-width `40px` status
+Both cards have one `Gryphon adapter binding` group, two full-width `40px` status
 rows, the applied connection name, and one `326x40px` action. A ready agent
 and an absent applied connection show `Link Gryphon function`; a connected
-service shows `Change Gryphon function`. The selected bot's safe alias is
+service shows `Change Gryphon function`. The selected adapter's safe alias is
 visible without exposing its API token or Telegram identity secrets. The
 permanent card has no registration, Telegram pairing, version or unlink action.
 
 The [unconnected selection overlay](<./src/example - settings - gryphon/example - settings - gryphon - connection choice overlay - not connected.png>)
-lists ready bots paired through Gryphon, or points the operator to
-`sudo updater tui` when none are available. Selecting a bot applies its
+lists ready adapters paired through Gryphon, or points the operator to
+`sudo updater tui` when none are available. Selecting an adapter applies its
 already verified Telegram account to this service without another code or
-confirmation step. One bot is selected per service; other service bindings
+confirmation step. One adapter is selected per service; other service bindings
 are independent. The
 [connected overlay](<./src/example - settings - gryphon/example - settings - gryphon - connection choice overlay - connected.png>)
-highlights the active bot, shows non-secret adapter details alongside the bot
-list, and offers `Unlink all adapters`. A selected bot that is no longer ready
+highlights the active adapter, shows non-secret adapter details alongside the
+list, and offers `Unlink all adapters`. A selected adapter that is no longer ready
 may be shown for context but cannot be applied until ready. Re-selecting a
-ready active bot can restore a revoked service binding. Unlink requires
-confirmation and removes this service's binding only; shared bots and other
+ready active adapter can restore a revoked service binding. Unlink requires
+confirmation and removes this service's binding only; shared adapters and other
 services remain connected. The desktop overlay is about `760px` wide with a
-`55px` title row and approximately `52px` bot rows; its list and detail panes
-stack on narrow screens. Bot registration, `/link CODE`, and shared version
+`55px` title row and approximately `52px` adapter rows; its list and detail panes
+stack on narrow screens. Adapter registration, `/link CODE`, and shared version
 management remain in Updater TUI.
 
 #### 10.5.6 Wyverne Connection
@@ -3047,11 +3055,12 @@ raster becomes a reusable product or content requirement.
 
 ### 10.8 Update Dialog Templates
 
-This is the universal browser update component. Use the same composition,
-controls and state transitions for an application release and a consumed
-shared component. The component name and installed/target versions are data;
-no product name, historical version, host, job ID or repository shown in a
-raster becomes part of this reusable contract.
+This is the browser update component for an application's own release. Its
+composition, controls and state transitions apply to that release flow. Shared
+Updater, Neptune, Gryphon and Wyvern release checks and installs use the host
+TUI; their service cards do not open this dialog. The application name and
+installed/target versions are data; no product name, historical version, host,
+job ID or repository shown in a raster becomes part of this reusable contract.
 
 These six PNGs define the visual baseline together with sections 2, 3.1 and
 3.3. [Part 05 section 34](./PART_05_CI_RELEASES_AND_LOCAL_UPDATES.md#34-operator-update-ui)
@@ -3099,7 +3108,7 @@ rounding; do not reproduce differences in crop origin as separate layouts.
 | Element | Canonical desktop measurement |
 | --- | --- |
 | Entry button | `326x40px`; centered label, `1px` structural border |
-| Main overlay | `760x702px`; `1px` outer white border; same size for discovery, no-result and job states |
+| Main overlay | Approximately `760px` wide with a `1px` outer white border; height grows for discovery, job and recovery content (current status export `766x752px`) |
 | Header | `55px` high including lower `1px` nested divider; title inset `20px` inline |
 | Close button | `40x40px`, approximately `12px` from the inner right edge and `7px` from the header top; centered cross |
 | Body | `24px` padding on all sides; content starts at local `x=25px` after the outer border |
@@ -3112,15 +3121,14 @@ rounding; do not reproduce differences in crop origin as separate layouts.
 | Job panel | Full `710px` content width, `38px` after the action row, `18px` padding; same metadata grid |
 | Job message | `18px` after the metadata rows; wraps in `14px/22px` text |
 | Required progress track | `6px` high, full available width, `12px` block margins, square ends |
-| Rollback action | Full panel content width, `40px` high, `18px` above it; danger border and text |
-| Warning dialog | `620px` wide, baseline `268px` minimum height; content height grows for save/acknowledgement/error states |
+| Rollback action | Disclosure or action below the retained job; show only when the authoritative job permits recovery |
+| Warning dialog | `620px` wide, baseline `268px` minimum height; content height grows for save/error states |
 | Warning header/body | Same `55px` header and `40px` close button; `24px` body padding |
 | Warning content | Question, `12px` gap, explanation, `16px` gap, right-aligned actions; `12px` action gap |
 | Warning buttons | `40px` high, `18px` inline padding; baseline widths about `85px` cancel and `230px` consequential action |
 
-The reference job card is approximately `187px` high before adding the required
-progress track. It MUST grow for that track, its measured-value label, long
-messages and recovery input; the old fixed height is not a clipping boundary.
+The retained job card grows for its progress track, measured-value label, long
+messages and recovery input. A former fixed height is not a clipping boundary.
 The Discovery baseline assumes one summary line, two explanation lines and one
 release-notes link. Additional content grows its panel in normal flow.
 
@@ -3173,70 +3181,60 @@ underlying update dialog inert; cancel returns to discovery with the chosen
 candidate intact. Escape or Close before submission cancels the local flow,
 not an already accepted host operation. Closing a running job view keeps the
 job alive and leaves a visible Settings entry for reopening its progress.
-Backdrop clicks MUST NOT discard a pending save/acknowledgement. Reopen, reload,
+Backdrop clicks MUST NOT discard a pending save or submission. Reopen, reload,
 resize and a virtual keyboard must keep the close control reachable and
 recover status without moving keyboard focus on every poll.
 
 #### 10.8.4 Entry Button Reference
 
-![Update discovery entry button](<./src/check_for_updates.png>)
+![Updates card with discovery action](<./src/example - settings - updates/example - settings - updates - ok.png>)
 
-Source: `339x52px`; the actual button is `326x40px` at crop coordinate
-`(5,5)`. The surrounding black area is export padding. Activation opens the
-dialog immediately and starts discovery once. It never installs a release.
+The current card shows the installed application version, local Updater and
+Kernel Register reachability, and the application's **Check for updates**
+action. Activation opens the dialog and starts discovery once. It never
+installs a release. Shared-agent version controls are absent from this card.
 
 #### 10.8.5 Available Release Reference
 
-![Update dialog with an available release](<./src/update - stage 1.png>)
+![Update dialog with an available release and retained job](<./src/example - settings - updates/example - settings - updates - overlay - status.png>)
 
-Source: `773x716px`; dialog border begins at `(6,10)` and encloses
-`760x702px`. Preserve the metadata/Discovery/actions hierarchy and the
-unoccupied lower region before a job exists. `Check again` performs a new
-check; `Install <version>` identifies the exact selected candidate and opens
+Preserve the metadata/Discovery/actions hierarchy. The reference also shows
+a retained completed job; omit that group when no job exists. `Check again`
+performs a new check; `Install <version>` identifies the exact selected candidate and opens
 the warning for an application update. Example identities and versions are
 replaced by actual data.
 
 #### 10.8.6 Backup Warning Reference
 
-![Mandatory saved-backup warning before an application update](<./src/update - backup warning.png>)
+![Mandatory saved-backup warning before an application update](<./src/example - settings - updates/example - settings - updates - overlay - backup overlay.png>)
 
-Source: `627x275px`; dialog is `620x268px` at `(4,4)`. Preserve the
-prominent target/version question, explanation, neutral Cancel and consequential
-action. Use `Install <application> update` as a generic title pattern;
+The reference export is `627x275px`. Preserve the prominent target/version
+question, explanation, neutral Cancel and consequential action. Use
+`Install <application> update` as a generic title pattern;
 capitalization follows the actual display name.
 
-`Create backup and install` is explicit consent to the named target and a
-gated sequence, not permission to install before saving. With a verified native
-save API, continue only after the write and close succeed. With an ordinary
-browser download, replace the combined action with a separate initially
-unchecked saved-copy acknowledgement and `Install <version>`, disabled until
-acknowledged. Download initiation alone never unblocks installation.
+`Create backup and install` is explicit consent to the named target and starts
+one sequence: create the full ZIP, send it to the browser, then submit the update.
+With a native save API, wait for the write and close to succeed. With an ordinary
+browser download, start the download and continue automatically without a second
+checkbox, file selection or Install action. A download request does not prove
+that the operator retained the file; the UI must not claim that it does.
 The native save picker remains native. Show `Creating backup...`,
-`Saving backup...`, `Backup saved` or the actual failure as appropriate;
-generation, save, expiry and validation errors are retryable without pretending
-that the gate passed. These states expand the warning in normal flow and never
-squeeze its text into the baseline height.
+`Saving backup...` or the actual failure as appropriate. These states expand
+the warning in normal flow and never squeeze its text into the baseline height.
 
 #### 10.8.7 Running Job Reference
 
-![Update dialog with a running job and recovery area](<./src/update - stage 2.png>)
+The [current status overlay](<./src/example - settings - updates/example - settings - updates - overlay - status.png>)
+establishes the retained job group's layout. During a running job, show the
+actual job state, the saved-copy recovery explanation and the progress track:
 
-Source: `773x716px`; main border starts at `(5,6)`. The legacy job panel
-starts at `(30,496)`, spans `710x187px` and contains a full-width
-`672x40px` recovery button at `(49,624)`.
-
-Required corrections to this historical capture:
-
-- Replace its server-backup-storage message with actual job state and the
-  saved-copy recovery explanation from Part 05.
-- Add the progress track between the message and recovery action. Use measured
-  progress only when a valid total is available; otherwise show an
+- Use measured progress only when a valid total is available; otherwise show an
   indeterminate track and the current phase in text.
 - Disable check/install mutations during the accepted operation; retain target
   information. A second click cannot start another update.
 - Show or enable rollback only when the authoritative job allows it and the
-  current operation has reached a safe terminal/recovery boundary. The pictured
-  enabled button is not permission to interrupt arbitrary apply work.
+  current operation has reached a safe terminal/recovery boundary.
 
 An indeterminate track uses accent and no fabricated numeric percentage.
 The remaining track uses `--white-80`; determinate fill uses accent, the bounded
@@ -3248,10 +3246,8 @@ region; actionable errors are announced once without reading every poll aloud.
 
 #### 10.8.8 Completed Job And Recheck Reference
 
-![Update dialog after a completed installation and fresh version check](<./src/update - stage 3.png>)
+![Update dialog after a completed installation and fresh version check](<./src/example - settings - updates/example - settings - updates - overlay - status.png>)
 
-Source: `773x716px`; dialog starts at `(7,9)`. Discovery is
-`710x203px` at `(32,200)`; the historical job panel begins at `(32,499)`.
 The installed row shows the verified running version, the completed job remains
 inspectable, and a fresh check determines whether another candidate exists.
 `No newer compatible release` is shown only if that check succeeds with no
@@ -3265,19 +3261,18 @@ the original saved ZIP and the current server authorization.
 
 #### 10.8.9 Initially Up-To-Date Reference
 
-![Update dialog when the initial check finds no newer compatible release](<./src/update - no updates.png>)
-
-Source: `773x716px`; uses the same `760x702px` dialog and Discovery
-geometry as the completed/recheck reference. Only `Check again` remains in
-the action row. If no job exists, omit the entire job/progress/rollback card;
+The no-update state uses the same Discovery group as the
+[status overlay](<./src/example - settings - updates/example - settings - updates - overlay - status.png>).
+Only `Check again` remains in the action row. If no job exists, omit the entire
+job/progress/rollback card;
 do not fabricate a completed operation or show an empty bordered placeholder.
 An offline, unauthorized, incompatible or failed check is a separate outcome,
 never this no-update state.
 
 #### 10.8.10 Visual And Interaction Acceptance
 
-Capture all six reference states, plus checking, cancelled/failed save,
-acknowledgement required, expired receipt, determinate/indeterminate progress,
+Capture entry, available, warning, running, completed and up-to-date states,
+plus checking, cancelled/failed save, expired receipt, determinate/indeterminate progress,
 reconnecting, rejected install, rollback success and rollback failure.
 Compare at `1919x1034` and `1920x1080`, then `600px`, `420px`,
 `360px`, a short `640x360` viewport, 200% zoom and a coarse pointer.
@@ -3287,15 +3282,15 @@ border. Assert the ledger's geometry within `1px` rather than matching export
 matte or subpixel font colors. Mask only variable data and explicitly identified
 historical deltas, not incorrect padding, fonts, controls or missing progress.
 Exercise keyboard focus/return, Escape, native picker cancellation, reduced
-motion, long names/versions/errors and reopening an active job. Repeat the
-component-update states without the backup step and with every approved theme.
+motion, long names/versions/errors and reopening an active job. Verify the
+separate shared-component release flow through the root TUI.
 The functional gate is
 [Part 06 section 39.1](./PART_06_UNIFIED_ACCEPTANCE_CHECKLIST.md#391-universal-update-workflow-acceptance).
 
 ### 10.9 Service Initialization Overlays
 
 The applicable `Initialize` actions in the automatic-backup group use one
-overlay family. Gryphon Connection uses the bot-selection overlay described
+overlay family. Gryphon Connection uses the adapter-selection overlay described
 in section 10.5.5; Wyverne Connection uses the Adapter-choice overlay in
 section 10.5.6. Their installation and enrollment instructions lead to the
 root TUI. This is a specification for

@@ -31,7 +31,8 @@ normative.
 
 The operator approved moving automatic schedule management from the central
 panel into each owning service. Settings → Backup is now the sole operator
-surface for that service's enable/interval controls and explicit backup runs.
+surface for that service's enable/interval controls. Manual snapshot download
+remains local to the owning service; there is no new manual remote-run action.
 This supersedes the former centralized-only schedule rule. Central storage
 retains identity, quota, revocation and fleet observation responsibilities.
 The handover contract in section 5 preserves existing policies and pending
@@ -337,7 +338,9 @@ is recreated is an expected reconnect state, not an automatic failure.
 | Kernel | Recovery archive only, namespace `kernel` | Kernel archive project exists and is linked |
 | Chronos | Recovery archive only, namespace `chronos` | Chronos archive project exists and is linked |
 | Saturn | Recovery archive only, namespace `saturn` | Saturn archive project exists and is linked |
+| Laboratory | Recovery archive only, namespace `laboratory` | Laboratory archive project exists and is linked |
 | Volt | Recovery archive plus dedicated `personal.volt` mirror | Both independent pipelines exist with the exact Volt profile |
+| Mastermind | Recovery archive plus dedicated Vault tree mirror | Both independent pipelines exist with the exact Mastermind profile (`mirrorRoot=mastermind`, `mode=zip-tree`) |
 
 Volt is deliberately not an archive-only special case. A single Volt setup code
 provisions two credentials and two workers:
@@ -348,18 +351,20 @@ mirror:        mirrorRoot=volt, mode=single-file,
                targetFilename=personal.volt -> Saturn WebDAV /volt
 ```
 
-The workers have independent schedules, states, retries and credentials and run
-concurrently. The UI MUST wait for the Updater job to finish, reload Neptune
-state and verify both rows. If one pipeline is absent or has the wrong profile,
-Volt reports partial configuration and offers **Repair Neptune pipelines**;
-it MUST NOT claim that backup is ready.
+The workers have independent execution state, retries and credentials and run
+concurrently. Volt and Mastermind expose one enabled switch and one hourly
+interval in their own Settings; a versioned `schedule-all` mutation commits the
+same values to both pipelines atomically. The UI MUST wait for the Updater job
+to finish, reload Neptune state and verify both rows. If one pipeline is absent
+or has the wrong profile, the owning service reports partial configuration and
+offers **Repair Neptune pipelines**; it MUST NOT claim that backup is ready.
 
 ## 5. Ongoing Neptune Interaction
 
 ### 5.1 Policy Ownership And Control
 
-The owning application's Settings → Backup authors its schedule and explicit
-run requests. Remove schedule enable/interval editors and service backup-run
+The owning application's Settings → Backup authors its schedule. Remove schedule
+enable/interval editors and service backup-run
 buttons from the central panel. Central inventory may display desired/applied
 state, last success and health, and manage identities, quotas, enrollment and
 revocation. Those storage security controls may block execution but cannot
@@ -375,7 +380,7 @@ state, not an alternative operator policy.
 
 The browser calls only its authenticated service backend. The backend resolves
 required internal coordinates through the registry and uses a typed scoped
-schedule/run operation via the authorized local agent or existing control-plane
+schedule operation via the authorized local agent or existing control-plane
 transport. It cannot forward arbitrary command, path, identity or URL fields.
 Server-derived service/pipeline identity, authorization and expected policy
 revision prevent access to another service's schedule.
@@ -413,12 +418,10 @@ the pipeline's documented fixed-delay policy; UTC timestamps avoid local DST
 changes shifting intervals. Surface the computed next due instead of asking
 the browser to predict it.
 
-`Back up now` is a separate idempotent command and may be used while automatic
-backup is disabled. It does not change enabled/interval or, by default, the
-existing scheduled next due. If an applicable project run is already active,
-return/observe that run or reject as busy; do not overlap exports or enqueue
-duplicates. Manual and scheduled due work are coalesced according to the
-single-project execution lock and a documented policy.
+The service GUI no longer exposes a manual remote-run action, and service-facing
+APIs reject new manual policy runs. A previously accepted run may finish without
+changing enabled/interval or the existing scheduled next due. The daemon keeps
+the single-project execution lock for already queued work and scheduled runs.
 
 Disabling prevents new scheduled runs, while an accepted transfer finishes or
 recovers to a safe terminal result under its retry policy. Network retries
@@ -432,7 +435,9 @@ coalesced overdue run per pipeline is considered on recovery, subject to
 permission, backpressure and the existing project/host concurrency limits.
 The UI distinguishes desired, applied, due, overdue, running, retrying and last
 remote commitment; a remote outage leaves the last applied policy intact.
-Archive and dedicated-mirror schedules remain independent in their owner card.
+Archive and dedicated-mirror workers retain separate execution state. Volt and
+Mastermind commit one shared enabled state and hourly interval to both policies
+through `schedule-all`; basic profiles update only their archive policy.
 
 ### 5.3 Handover From Central Schedule Editing
 
@@ -448,15 +453,33 @@ Archive and dedicated-mirror schedules remain independent in their owner card.
 4. Reject stale central schedule commands/revisions after cutover. Dedupe or
    explicitly resolve old queued run commands; never replay them as new runs.
    An active archive/mirror transfer continues with its existing identity.
-5. Verify the desired and agent-applied policy, next due, one manual run and
-   one automatic run from the service interface. Test an agent restart and
-   central transport outage without resetting settings or duplicating work.
+5. Verify the desired and agent-applied policy, next due, an automatic run and
+   the local snapshot download from the service interface. Confirm that a new
+   manual remote run cannot be submitted. Test an agent restart and central
+   transport outage without resetting settings or duplicating work.
 6. Rollback of the migration restores one writer and the preserved policy/
    queue boundary; it cannot leave both central and service editing active.
 
 Service backup/restore includes schedule intent and reconciliation metadata.
 These requirements describe the approved target contract, not an assertion
 that an older deployment's UI or APIs already support it.
+
+### 5.4 Scoped Neptune unlink
+
+The **Unlink Neptune agent** action in Kernel, Volt, Chronos, Saturn,
+Laboratory and Mastermind Settings starts a durable, service-scoped Updater job.
+Updater prepares that project's Neptune registration for unlink, disables its
+archive and mirror policies, and waits for accepted transfers to reach a safe
+boundary. Saturn revokes the project's producer and mirror/reader credentials,
+unused setup codes and pending commands while preserving stored archives and
+the reusable service identity. Neptune then removes only that registration;
+Updater invalidates only that client's local credential files.
+
+If Saturn cannot confirm revocation, the project remains paused in `unlinking`
+for a safe retry. The shared daemon, other service registrations and their
+schedules remain active. Reconnection requires a new setup code. A local
+success response alone does not establish completion; the UI follows the job
+and reloads the observed binding state.
 
 ## 6. Gryphon Initialization And Binding
 
@@ -524,14 +547,14 @@ verifies the manifest and checksum, stages the artifact, performs the
 component-specific atomic replacement, restarts the component and verifies
 local health. The web client cannot supply a URL, executable path or command.
 The root TUI supports install/check/update for all three agents and
-check/self-update for Updater; Neptune may additionally expose typed scoped
-service-facing checks where explicitly authorized.
+check/self-update for Updater. Service-facing Neptune release checks and
+updates are rejected.
 
 | Operation | Local Updater route |
 | --- | --- |
 | Initialize/repair Neptune profile | `POST /v1/components/neptune-linux/initialize` |
 | Read Neptune initialization result | `GET /v1/components/neptune-linux/initializations/{id}` with the authenticated head identity |
-| Check/update Neptune Linux | Root TUI host operation; optional scoped `POST /v1/components/neptune-linux/check` / `POST /v1/components/neptune-linux/update` delegates to the same host-wide resolver |
+| Check/update Neptune Linux | Root-only `sudo updater tui` host operation; service-facing routes reject release requests |
 | Check/update Gryphon Linux | Root-only `sudo updater tui` → operator `POST /v1/check` / `POST /v1/actions`; no service selection |
 | Check/update Wyvern | Root-only `sudo updater tui` → operator `POST /v1/check` / `POST /v1/actions`; no service selection |
 | Install absent agent | Its own signed bootstrap, root TUI, or a consuming installer's narrow dependency ensure; local health is checked before optional enrollment |
@@ -561,12 +584,12 @@ privileged installer has only the separate, allow-listed initial dependency
 ensure contract. Browser-facing module endpoints do not proxy shared
 check/update actions.
 
-Shared-agent release policy and fleet observation may remain central. Neptune
-and other components retain their applicable scoped workflows. Gryphon and
-Wyvern Settings cards keep their existing version/update visual groups for
-layout compatibility, but their controls only explain the TUI path and cannot
-check or install a release. This does not return backup schedule/run authoring to the
-central panel.
+Shared-agent release policy and fleet observation may remain central. Updater,
+Neptune, Gryphon and Wyvern release checks and updates use the root TUI. Their
+service-facing APIs reject new release operations. Connection/status cards may
+retain visual groups for layout compatibility and explain the TUI path, but
+cannot check or install a release. Backup schedule authoring remains in the
+owning service Settings; Saturn Synchronization is observation-only for it.
 
 Updater self-update is a separate binary lifecycle. Updating the executable
 does not by itself replace arbitrary packaging or systemd definitions. Unit or
