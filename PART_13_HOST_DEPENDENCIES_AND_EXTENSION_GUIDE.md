@@ -45,6 +45,18 @@ installers already satisfy it.
 Window has no application consumer edges in its first release. Its paired
 development-PC reader is an operator-granted diagnostic client, not an
 application dependency or an installation prerequisite for another agent.
+Window's storage view is read-only and grant-gated. Docker image inventory,
+rollback retention and cleanup belong to Updater's privileged host operation;
+Window never receives that mutation capability. The offline current/previous
+image rule is specified in Part 05 and applies to application heads regardless
+of which shared agents are installed.
+
+Window's root bootstrap provisions a separate interactive `windowops` SSH
+account and a narrow sudo entry for its own Updater TUI section, first key
+pairing and bounded test capture. Login credentials are configured by the
+operator; the dedicated `window` SSH account remains an MCP-only reader. A
+reachable Kernel HTTP 403 for `repositories.window.url` is an authorization
+failure under §3, even when Window's fallback repository is configured.
 
 The machine-readable dependency map in Updater and each consuming release
 bundle MUST agree with this matrix. A new service changes both through one

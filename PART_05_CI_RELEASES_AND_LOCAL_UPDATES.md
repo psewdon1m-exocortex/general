@@ -431,6 +431,32 @@ persistent application volumes or required deployment metadata.
 
 An ordinary host reboot preserves installed applications and their persistent
 databases/settings. It does not require restoring every service from backups.
+
+### Docker image storage and offline rollback
+
+Updater owns Docker image cleanup on the host. Its root TUI first displays a
+bounded preview and requires a separate confirmation. The operator API for this
+operation exists only on Updater's private root socket, never on a service
+mounted socket. Window may report storage usage but cannot delete images.
+
+The running image and the immediately previous deployment generation remain
+local for an offline rollback. Updater persists the previous image references
+separately from its bounded job history before changing a deployment. Active and
+stopped container images, current registered head references, in-progress and
+recovery jobs, and the two newest local images of each eligible registered
+repository are also protected. If Updater cannot establish the previous
+generation for a repository, it excludes that repository from cleanup. A stale
+or changed preview cannot authorize deletion.
+
+Only images in registered Exocortex repositories, older than seven days, may
+enter a batch of at most 12. Updater removes exact image IDs without force;
+Docker volumes, containers, build cache, logs and images from unregistered
+repositories are outside this operation. Docker refusal stops the batch. Older
+rollback images may be downloaded by their previously recorded immutable
+registry digest. The pull and local image identity must be verified before
+stopping the current deployment or restoring data; an unavailable or unverifiable
+image leaves the current deployment untouched. Offline rollback of historical
+generations beyond the immediately previous one is not promised.
 The saved-copy recovery requirement applies to an interrupted update that needs
 data rollback, or to an explicit later restore.
 
