@@ -1,5 +1,9 @@
 # Part 13. Host Dependencies And New Component Contract
 
+## Approved outdoor agent exception — 2026-10-05
+
+Pluto is outside the internal application/shared-agent dependency matrix. Its [approved contract](./decisions/2026-10-05-pluto-outdoor.md) explicitly permits independent Linux installation, its own TUI and signed self-update, without ensuring Updater or Neptune. It uses a restricted Kernel Outdoor service token for discovery and a separately enrolled Saturn folder capability for data. Neptune fleet observation does not create a Neptune dependency.
+
 This Part defines the installation graph for Linux hosts and the contract for
 adding an application service or a shared host agent. It applies alongside
 [Part 04](./PART_04_BOOTSTRAP_AND_DEPLOYMENT.md),

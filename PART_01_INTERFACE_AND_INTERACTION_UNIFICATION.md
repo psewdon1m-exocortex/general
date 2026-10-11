@@ -3398,3 +3398,467 @@ invoker (or the corresponding card action if the card was re-rendered).
 Backdrop clicks cannot discard a populated sensitive form or pretend to
 cancel an accepted operation. Keyboard, screen-reader announcements, stale
 state, reduced motion and error recovery follow the update-dialog contract.
+
+
+## 11. Saturn Shared Link: An Operator-Requested Interface Case Study
+
+### 11.1 Private Case And Mandatory Operator Authorization
+
+**This is a private, operator-requested case. Similar changes MUST be made
+only in response to a direct, explicit request from the operator for the
+affected interface.** A designer, developer or automated agent MUST NOT use
+this example as standing permission to redesign other system elements.
+
+The operator requested this comparison on 2026-10-05 as a substantial example
+that a programmer and designer can study together. The operator explicitly
+restricted its application to directly requested changes. Requesting this
+documentation does not authorize implementation changes elsewhere.
+
+This section describes Saturn's actual and legacy public shared-link layouts
+and explains the design reasoning that can inform a separately authorized
+change. It is not a replacement for sections 1-10, a new system-wide theme or
+a mandate to convert other services to the current Saturn appearance.
+
+In particular, the current shared-link page uses a light palette, tinted file
+categories, body typography and shadows that depart from the operational
+interface defined earlier in this Part. Those differences are recorded here
+as observations of this particular implementation. They do not become general
+exceptions to the black surface, five-hue palette, font roles or no-shadow
+rules. The material-divergence protocol still applies to other affected
+interfaces; an operator request for one page does not authorize another page.
+
+Before using this case to change another element, record the direct operator
+request, the named screen/component, intended audience, permitted differences
+and acceptance conditions. A broad request to improve code, unify components,
+fix a bug or follow this document MUST NOT be interpreted as an implicit
+request for this visual redesign. Without that request, preserve the existing
+interface and applicable standard.
+
+### 11.2 What Is Being Compared
+
+The comparison concerns the **recipient's public shared-link page**, not the
+owner's authenticated Shared management screen. A recipient arrives through
+one link to view, browse or download the content that its owner allowed.
+That task differs from creating links, editing permissions or operating the
+storage service.
+
+In the inspected Saturn implementation both presentations are available:
+
+| Presentation | Route shape | Implementation |
+| --- | --- | --- |
+| Current/default | `/s/<token>` | `PublicShareView`, `.share-public-view--client` and `.share-client-*` |
+| Preserved legacy | `/s/<token>?legacy=1` | The `legacyMode` branch of `PublicShareView`, `.share-public-*`, `.share-browser-*` and `.share-password-*` |
+
+`legacy=1` selects a presentation branch for the same shared-link capability.
+It is not a different permission level, data store or authentication mechanism.
+It is also unrelated to the separate migration of old hash-only share tokens
+in Saturn's owner interface. Removing the query selects the current layout;
+changing it cannot unlock a protected link or grant download permission.
+
+The source observations below were checked on 2026-10-05 against:
+
+- [PublicShareView and its shared interaction handlers](../saturn/apps/web/src/app.tsx);
+- [legacy and current layout styles](../saturn/apps/web/src/styles.css);
+- [public metadata, unlock, content, package and thumbnail client calls](../saturn/apps/web/src/api.ts);
+- [public-share API and response handling](../saturn/apps/api/src/share.controller.ts);
+- [server authorization and thumbnail-source scoping](../saturn/packages/shares/src/share.service.ts);
+- [thumbnail rendering and cache](../saturn/packages/shares/src/thumbnail.service.ts);
+- [layout and permission regression cases](../saturn/apps/web/src/app.test.tsx).
+
+These are implementation references in the integration workspace, not public
+links for recipients. Product-specific routes, labels and CSS names illustrate
+the case; another service retains its own domain language and public API.
+
+### 11.3 Comparable Visual Evidence
+
+The following captures use the same synthetic six-item folder, permissions,
+expiration date, configured blue accent and browser environment. Desktop
+captures are `1919x1034`; the mobile capture uses a `390px` viewport. Names,
+sizes, dates and image/PDF/video preview graphics are fixtures, not real
+operator data. The preview graphics stand in for generated thumbnails.
+
+**These screenshots are illustrative case-study evidence, not additional
+normative templates under section 1.1.** They establish what changed in the
+observed implementation. Their incidental pixels and sample values MUST NOT
+be treated as new global design tokens.
+
+| State | Legacy | Current |
+| --- | --- | --- |
+| Opened shared folder | ![Legacy opened share: centered dark panel and a compact file table](./src/saturn-shared-case-study/legacy-opened.png) | ![Current opened share: content heading, primary action and thumbnail grid](./src/saturn-shared-case-study/current-opened.png) |
+| Password-protected link | ![Legacy password gate: compact password form and service reachability](./src/saturn-shared-case-study/legacy-locked.png) | ![Current password gate: Saturn wordmark, protection explanation and Continue action](./src/saturn-shared-case-study/current-locked.png) |
+
+The [current mobile capture](./src/saturn-shared-case-study/current-mobile.png)
+shows the same content in a single column. Both opened desktop captures contain
+the same six items: the legacy table requires internal scrolling to reveal
+the final row, while the current page gives each item a visual tile and grows
+in normal page flow. This is a layout tradeoff, not evidence of different data.
+
+### 11.4 The Change In Reading And Decision Order
+
+The legacy page places the service presentation first. Its large heading is
+`saturn shared link`. Inside a compact outer frame the reader encounters a
+Gateway mode notice and browser-copy limitation, then expiration and service
+reachability, then the file table and the full-width bulk action at the bottom.
+
+The current page separates service identity from content identity. A compact
+top bar identifies Saturn and summarizes access. The main heading names the
+actual shared object, such as `Project materials`; item count and total size
+provide context, and the main allowed action appears beside that heading.
+The content collection follows immediately. The browser-copy explanation is
+still available under `About access` after the collection.
+
+```text
+Legacy opened page                 Current opened page
+
+Large generic service heading      Compact brand + access + expiry
+Outer framed panel                 Actual shared object name + summary
+  Gateway notice                   Primary allowed action beside heading
+  Browser-copy explanation         Navigation/sorting toolbar
+  Expiry + service reachability     File/folder tiles with visual identity
+  Fixed-height file table          Secondary access explanation
+  Bulk action below the table      Small service attribution
+```
+
+This arrangement lets a recipient answer four questions in order: What was
+shared? What may I do? Which item do I need? How do I act on it? The service
+remains identifiable without consuming the main content heading.
+
+The intended benefit is a clearer first encounter for an occasional recipient.
+This is a design interpretation supported by the composition; it is not a
+measured claim about conversion, usability-test results or task completion
+time. The dense legacy table can still be useful for repeated name/size
+comparison. A separately requested redesign must choose according to its
+actual audience and task rather than assume that tiles always improve a table.
+
+### 11.5 Difference Ledger And Transfer Reasoning
+
+The final column is a design question for a **separately and directly
+operator-requested** change. It is not permission to apply that change now.
+
+| Area | Legacy implementation | Current implementation | Reasoning to consider in an authorized change |
+| --- | --- | --- | --- |
+| Page identity | Generic large `saturn shared link` heading | Small service brand; actual file/folder name is the main heading | Give the user's object the main semantic heading; keep service identity in a separate role. |
+| Layout model | Centered composition, approximately `684px` wide, containing one strongly outlined panel | Full-page shell with a sticky top bar and a centered content region capped at `1380px` | Choose the working width from the content task; avoid inheriting an authentication-panel width for a collection. |
+| Information order | Gateway explanation precedes the collection | Object summary and primary action precede the collection; longer explanation follows it | Separate information needed to act from supporting detail while preserving access-critical information. |
+| Primary command | Large outlined action below the table, with byte size inside its label | Filled action beside the object heading; size is separate metadata | Separate the command verb from a changing value and keep the command close to its scope. |
+| Permission language | `View only Gateway`, `Browse Gateway`, `Download only Gateway` | `View only`, `Browse only`, `Download allowed` | Express what the recipient may do without requiring knowledge of internal infrastructure. |
+| Expiration language | `Shared link expires:` and a date or `none` | `Available until …` or `No expiration` in the desktop top bar | Use a reader-oriented sentence for the same backend fact; avoid ambiguous missing-value language. |
+| Collection form | Compact Name/Size/action table inside a `262px` scroll area | Responsive grid of independent file/folder articles | Tiles favor recognition and visual media; tables favor dense comparison. Neither is universally preferred. |
+| File recognition | File name and size; no visual preview | Type icon plus name/size; images, PDFs and videos can show a thumbnail | Add visual recognition when it helps choose content; retain a useful fallback for other types or failures. |
+| Per-item command | Small arrow icon for Open or Download | Explicit `Open` or `Download` text link | Name actions visibly when symbols may be unfamiliar; retain a resource-specific accessible name. |
+| Folder navigation | Clickable folder name and a Back action above the table | Clickable folder visual area and Back in the collection toolbar | Make navigation targets distinct from file downloads; do not imply that every tile has the same click behavior. |
+| Service status | A persistent framed `Service Reachability` label and colored square in both locked/opened layouts | Healthy reachability is quiet; degraded health produces a contextual service message | Show an operational condition when it affects the recipient's next step; do not confuse health with access authorization. |
+| Password gate | Small technical form with `Please enter shared link password:`, a placeholder and `Enter` | Branded gate with a lock illustration, protection heading, sender-password explanation, visible label and `Continue` | Explain the situation and where the required input comes from before asking for it. |
+| Visual hierarchy | Black/white/accent, strong nested frames and monospace content | Warm light surface, dark ink, restrained separators, filled primary action and visual tiles | Hierarchy can be expressed through role, size, spacing and contrast; the specific palette change remains private to this case. |
+| Supporting explanation | Full browser-copy warning always occupies the first panel | `About access` disclosure after the collection | Move secondary explanation without concealing the current permission or promising technical restrictions that do not exist. |
+| Attribution | The large generic title carries the service identity | Compact brand at the top and `Shared via Saturn` at the bottom | Keep attribution proportionate to its purpose; do not add a marketing hero to a working page. |
+
+### 11.6 Opened State: Component Anatomy And Actual Behavior
+
+The current opened page has five layers. They are compositional roles rather
+than another service's required CSS component names.
+
+1. **Service and access bar.** The sticky dark bar contains the Saturn planet
+   and wordmark, the access label and, on desktop, the expiration sentence.
+   It introduces the service without an owner sidebar, Settings controls or
+   privileged navigation. Neither current nor legacy public layouts include
+   the owner's authenticated shell.
+2. **Object heading and primary action.** A small `Shared folder`/`Shared file`
+   qualifier precedes the resource name. The summary and action form one
+   meaningful group; the action is derived from resource type and permission.
+3. **Collection toolbar.** The left side describes the collection or provides
+   Back when inside a folder. Name and Size sorting stay on the right on
+   desktop and reflow on a narrow screen. The handlers and sort state are
+   shared with legacy; sorting is not a new permission or backend feature.
+4. **File/folder collection.** Each article has a visual area, a metadata area
+   and an allowed file action. An unsupported preview retains the type icon.
+   A failed thumbnail is hidden while the icon, name, size and action remain.
+5. **Secondary detail and feedback.** `About access`, contextual errors and a
+   small footer follow the collection. A service failure is also shown before
+   the toolbar when the reachability check reports degradation.
+
+The current tile is not a universal clickable card. A folder's visual area is
+a button that enters that folder. A file's thumbnail is passive; the explicit
+Open/Download link performs its action. Hover can highlight an article even
+when its surface itself is not a click target. A derivative implementation
+must specify hit areas honestly instead of making a visual hover imply an
+unimplemented preview, modal or download.
+
+The permission-to-action mapping in the normal valid modes is:
+
+| Resource/mode | Recipient wording | Main command | Item actions |
+| --- | --- | --- | --- |
+| File / `view` | `View only` | `Open file` | `Open`; server inline-content policy still applies |
+| File / `download` | `Download allowed` | `Download` | `Download` |
+| Folder / `download_folder` | `Download allowed` | `Download all`, temporarily `Preparing…` while preparing the package | Folder navigation and permitted child-file downloads |
+| Folder / `browse` | `Browse only` | Disabled `Download unavailable` | Folder navigation and permitted thumbnails; original-file download links are absent |
+
+`Download all` prepares the server package before starting its download.
+The new layout does not replace this process with a cosmetic link or make
+client-side ZIP generation an assumed requirement. Failed preparation reports
+that the package could not be prepared within its limits.
+
+In the inspected implementation the main heading, bulk byte summary and folder
+package action remain scoped to the shared root. The item count reflects the
+currently listed entries. A nested-folder view has Back but no full textual
+breadcrumb, and the bulk package does not become a package of only that nested
+folder. Those details must be understood before using the example to design
+scope labels in another interface.
+
+### 11.7 Protected State: Explain Before Requesting Input
+
+The legacy protected composition is approximately `255px` wide. Its outlined
+password form is `170px` high in the normal state, with an absolutely positioned
+prompt, a `28px` input and a `35px` Enter button. A service-reachability block
+is always placed beneath it. The input has an accessible label, but that label
+is visually hidden; the visible explanation is the compact prompt.
+
+The current protected composition uses a shell capped at `480px`. The Saturn
+wordmark is centered above a distinct light card. Inside the card a small lock
+illustration and `Private shared link` qualifier introduce the state, followed
+by `This link is protected` and an explanation to enter the password provided
+by the sender. The form has a visible Password label, an input and a full-width
+Continue button. Input and button are at least `46px` high in this implementation.
+
+The form uses normal document flow: additional explanation and an error can
+occupy their own space. This avoids coupling every message to a fixed absolute
+vertical coordinate. The reading sequence is:
+
+```text
+Service identity
+Reason for the gate
+Where the required password comes from
+Visible input label and field
+Continue / Checking…
+Local error, if present
+Small service attribution
+```
+
+Both layouts use the same password-unlock handler and the link password,
+not the owner's Access Key. The field is masked; submission becomes pending;
+the handler clears the entered password after either success or rejection.
+A rejected password and a rate-limit response have different messages.
+Successful unlock loads the allowed folder content through the same public
+capability. The illustration and wording improve explanation; they do not add
+a security mechanism or prove a new encryption guarantee.
+
+The form's behavior remains part of the acceptance contract even when its
+appearance changes: visible labels supplement placeholders, pending state
+prevents duplicate submission, errors are associated with the current task,
+and a user can submit with the keyboard. Never replace server rate limiting
+or password validation with a visual lock state.
+
+### 11.8 Private Visual Vocabulary And Concrete Measurements
+
+These values describe the current Saturn implementation, not mandatory tokens
+for other elements. They are supplied so a designer and programmer can discuss
+actual relationships rather than use vague terms such as “more modern”.
+
+| Role | Legacy | Current case |
+| --- | --- | --- |
+| Page surface | `#000000` | `--share-client-bg: #f3f1eb` |
+| Panel/tile surface | Black within strong white frames | `--share-client-panel: #fffef9` |
+| Main text | White | `--share-client-ink: #171714` |
+| Secondary text | 80%-white | `--share-client-muted: #6d6b63` |
+| Neutral separators | White or nested `#CCCCCC` | `--share-client-line: #d8d4c9` |
+| Soft interaction surface | `#111111` | `--share-client-soft: #eae6dc` |
+| Accent | Configured accent directly | Local dark-on-light blend: 48% configured accent and 52% dark ink; the dark top bar uses a lighter accent blend |
+| Body and controls | Primarily Consolas | Space Grotesk for most text and controls; Consolas retained for compact size/count metadata |
+| Heading | Generic service heading up to `80px` | Object heading `clamp(38px, 5vw, 64px)`; separate `25px` desktop brand |
+| Opened layout | `684px` maximum composition; `583px` minimum panel height | `1380px` maximum content region, `48px` top inset, `20-64px` responsive horizontal inset |
+| Collection | `262px` internal table viewport | `auto-fill` grid with `230px` minimum tracks and `16px` gaps; a single item has a bounded `260-420px` track on desktop |
+| Visual area | No thumbnail region | `148px` desktop visual height; type icons are `58px`; thumbnails fill the reserved area |
+| Main action | Outlined full-width control at panel bottom | Filled dark control, at least `154px` wide and `46px` high |
+| Protected composition | `255px` shell; compact fixed-position form | `480px` shell; card padding approximately `42px`; normal-flow form |
+| Tile emphasis | Table/name/icon control states | Accent border, `translateY(-2px)` and a small shadow on hover/focus-within |
+
+The current design retains rectangular surfaces and thin borders, but uses
+fewer enclosing frames. It also introduces category-specific muted tints for
+folders, images, video, audio, PDF and archives. A PDF tint is a type cue, not
+an error state; greenish image tint is not proof that a file is safe. Error
+messages remain explicit text. Media pixels naturally retain their own colors.
+
+The current card shadows, pastel category hues, negative display letter
+spacing and expanded Space Grotesk roles depart from earlier sections of this
+Part. They must stay explicit in any authorized design brief. Copying only the
+colors would miss the information hierarchy; copying the whole CSS would also
+copy local exceptions and dimensions without proving that they suit the next
+task. No automatic replacement of global theme variables is authorized here.
+
+### 11.9 Added Preview Capability And Preserved Security Boundary
+
+The redesign includes a genuine capability addition: the current collection
+can request image, PDF and video thumbnails. Legacy does not render those
+requests. Production thumbnail generation is separate from the synthetic
+preview graphics in section 11.3: it generates bounded WebP images, caches
+them by content identity and keeps a type-icon fallback when rendering fails
+or a source is unsupported or too large.
+
+Preview delivery is a data-access surface. The thumbnail service obtains the
+source through shared-link authorization before returning cached or generated
+output. It checks the resource belongs to the file capability or lies within
+the allowed shared folder. A browse-only link can receive the permitted
+thumbnail without receiving permission to download the original file; preview
+access is not counted as an original-file download claim.
+
+An authorized derivative that adds previews must therefore include backend
+permission checks, revocation/expiration behavior, size and generation-time
+limits, safe media rendering and cache isolation. A public object-store URL
+or previously cached bitmap must not bypass authorization. A visual preview
+can disclose content, so its allowed information must be part of the requested
+scope rather than assumed to be harmless decoration.
+
+Other core contracts are shared by both layouts: the capability token,
+password session, allowed subtree, mode restrictions, expiry, revocation,
+classification checks, limits and content/package endpoints remain server
+responsibilities. The current page changes how those facts are presented;
+it does not authorize clients to enforce them on their own.
+
+`View only` still cannot guarantee that pixels or bytes already delivered to
+a browser cannot be copied. The explanation survives under About access.
+Neither the wording, hiding Download nor switching to legacy may be marketed
+as impossible-copy protection. The footer's secure-sharing attribution must
+not be read as a new end-to-end encryption promise.
+
+### 11.10 Responsive Behavior And Limits Of The Observed Version
+
+At `720px` and below, the current header becomes more compact, the object
+heading and primary action stack, the action uses full width, toolbar groups
+stack and the tile collection becomes one column. Tile visuals become `132px`
+high; the protected card uses smaller padding. The layout grows through page
+scrolling rather than retaining the legacy table's fixed-height inner viewport.
+
+The useful relationship is preserved reading/action order with different
+space allocation. It is not a requirement to shrink a desktop screenshot
+uniformly. Another authorized interface should select breakpoints from its
+content, not copy `720px` or a tile width without measurement.
+
+The current implementation also has limits which are **not** recommendations:
+
+- The expiration sentence is hidden on mobile by CSS, without an alternative
+  expiry location on that page. An authorized derivative should preserve
+  access-relevant expiry information in a compact visible location.
+- A long tile name is ellipsized and supplied through a `title` attribute.
+  That is not a complete touch or keyboard mechanism for reading the full
+  name. Define an accessible full-name treatment when the task requires it.
+- Folder navigation retains a root heading and Back instead of a complete
+  breadcrumb. Specify object, current location and bulk-action scope clearly
+  where deeper navigation makes them ambiguous.
+- File thumbnails are not a click-to-preview interaction. Do not advertise
+  one unless a corresponding action is implemented and authorized.
+- The current small sort and per-file action targets need explicit keyboard,
+  touch and focus review. A `46px` main button alone does not establish that
+  every target satisfies the accessibility contract.
+- Decorative hover transforms, shadows and color changes do not establish
+  accessibility compliance. Reduced-motion behavior, visible focus, contrast,
+  zoom, screen-reader names and error recovery require separate verification.
+- The observed unavailable state says `404 / Shared link not found`; the
+  comparison does not claim richer diagnostics for every server failure.
+  Do not expose a confidential reason simply to make an error more detailed.
+
+These observations keep the case honest: an appealing composition is not an
+automatic acceptance certificate for every state. This documentation change
+does not itself authorize correcting or redesigning those runtime details.
+
+### 11.11 Joint Designer And Programmer Workflow For A Requested Change
+
+Use this workflow only after the direct operator request described in 11.1.
+The goal is to transfer the reasoning into a concrete, reviewable result,
+with a named scope and verified behavior.
+
+1. **Write the requested scope.** Identify the exact element and audience,
+   record the operator's request and list accepted visual/behavioral changes.
+   Determine whether the existing operator standard still applies or whether
+   the request explicitly permits a private departure. Do not infer permission
+   from the appearance of Saturn's public share page.
+2. **Describe the user's task and existing constraints.** State the object,
+   allowed next action, information needed to choose it and permission boundary.
+   Measure useful density and repeated comparison needs before selecting a
+   table, list, tile grid or form. Retain suitable existing structures.
+3. **Prepare an information-order comparison.** Draw the old and proposed
+   reading sequence. Identify which content moves, which remains visible and
+   which becomes optional detail. Name the purpose of each change. Do not use
+   adjectives such as “premium” as a substitute for those decisions.
+4. **Define component roles and all relevant states.** Supply object heading,
+   service identity, access summary, primary/local actions, content collection,
+   gate, supporting detail and errors where applicable. For each control define
+   hit area, label, pending/disabled behavior and keyboard action. Include empty,
+   locked, loading, failed and unavailable states before acceptance.
+5. **Specify the private visual contract.** Document palette, font roles,
+   widths, spacing, media ratios, border hierarchy and emphasis as semantic
+   tokens. List any approved departure from the central standard explicitly.
+   Keep one screen's variables scoped to its root instead of changing every
+   control in the service through broad selectors.
+6. **Map behavior to the existing domain model.** Translate current permission
+   states into truthful labels and actions. Reuse validated handlers where
+   possible; implement a backend capability when a requested preview or other
+   action needs one. Do not fabricate new data, infer hidden permissions or
+   make a visual switch bypass authorization.
+7. **Compare matching fixtures.** Render old/proposed states with the same
+   names, counts, sizes, rights and error conditions. Include long names,
+   missing previews, one item, many items and a nested location. A prettier
+   fixture must not hide a lost action, omitted status or changed action scope.
+8. **Verify and record the result.** Check the acceptance list below, record
+   actual implementation limits and update the affected documentation. If a
+   temporary legacy branch is retained, define its purpose and removal owner
+   separately; this Saturn example does not mandate duplicate UIs forever.
+
+The designer's handoff should contain the comparison, component/state layouts,
+token roles, responsive changes and a clear account of permitted exceptions.
+The programmer's handoff should contain the action/permission mapping,
+data/API dependencies, preview fallback, state transitions and reproducible
+verification. Both should share the same scope and labels.
+
+### 11.12 Conditional Examples In Other System Elements
+
+The following are discussion examples for a future direct request, not a
+backlog, approval or instruction to change these elements now.
+
+| If the operator explicitly requests a change to… | Reasoning that may transfer | Domain-specific boundary to retain |
+| --- | --- | --- |
+| A public document or media view | Let the actual document title lead; separate service branding, permission and a clear allowed action; preview content with an explicit fallback. | Document access, redaction, expiry and copy limitations remain server-controlled. |
+| A recipient upload page | Explain the destination and accepted input before the form; keep upload state and errors next to the action. | Upload-only access does not grant browse/download; quotas, type/size policy and validation remain effective. |
+| A requested connection form | Explain what is being connected, what value is required and where it comes from; distinguish test, pending and completed states. | Credential handling, validation and any separately required confirmation remain intact. |
+| A report or restore-candidate view | Make the report/candidate the object heading; separate main action from supporting history and technical detail. | A consequential restore or apply action retains scope, evidence and the applicable confirmation requirements. |
+| An operator collection | Clarify object/action hierarchy and command labels while preserving useful density. | The black operational theme and dense table may remain the correct contract; this case grants no light-theme or tile conversion. |
+
+A domain-specific task can benefit from the reasoning without needing every
+visual treatment in Saturn. Even that adaptation is implemented only within
+the operator's explicitly requested scope.
+
+### 11.13 Acceptance Checklist For An Authorized Derivative
+
+- [ ] A direct operator request names the affected interface; this case study
+      is not used as substitute authorization.
+- [ ] Audience, task, permitted changes and any central-standard departure are
+      documented before implementation.
+- [ ] Actual object identity, current scope and allowed primary action are
+      understandable without learning internal service terminology.
+- [ ] Service branding, metadata, supporting explanation and task content have
+      distinct roles; important permissions and expiry remain discoverable.
+- [ ] Main/local action names map truthfully to resource type, mode and backend
+      behavior, including pending, disabled and forbidden states.
+- [ ] Navigation targets, passive media and download/open actions have explicit
+      hit areas and do not rely on hover to imply behavior.
+- [ ] Empty, loading, locked, rejected-input, rate-limit, media-failure and
+      unavailable states are designed and verified where applicable.
+- [ ] A preview addition has authorized source access, scope checks, fallback,
+      resource budgets and cache behavior; hiding an original download does
+      not silently broaden preview permission.
+- [ ] Server authentication, authorization, expiry, revocation and limits pass
+      unchanged or intentionally expanded domain tests; visual variants cannot
+      bypass them.
+- [ ] Matching old/new desktop and narrow fixtures demonstrate preserved useful
+      content and actions, with long names, many items and nested locations.
+- [ ] Keyboard, screen-reader names, focus visibility, contrast, target sizes,
+      reduced motion and zoom are verified separately from screenshots.
+- [ ] Product claims remain accurate; browser-delivered content is not promised
+      to be impossible to copy, and decorative security cues imply no new guarantee.
+- [ ] A documented private style remains scoped to the approved element.
+      Unrequested screens and global tokens retain their applicable contract.
+- [ ] Known implementation limits and any retained legacy presentation are
+      recorded honestly; the example is not declared a universal replacement.
+
+**Authorization boundary:** studying or referencing this section is permitted;
+performing a similar redesign requires the operator's direct request for that
+particular element. No automatic or proactive system-wide adoption is authorized.

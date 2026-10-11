@@ -1,5 +1,20 @@
 # Part 09. Service Agents: Deployment, Initialization And Lifecycle
 
+## Pluto outdoor exception — 2026-10-05
+
+[Approved Pluto architecture](./decisions/2026-10-05-pluto-outdoor.md) adds a standalone Linux outdoor agent with its own bootstrap, TUI and signed self-update. Pluto requires neither Updater nor Neptune. Kernel Outdoor tokens permit only bounded non-secret discovery; Saturn enrolls a named isolated file pipeline and retains ten versions per file. Pluto is observed as a separate category in Neptune fleet. The standard shared-host lifecycle below continues to apply to internal agents.
+
+## Approved enrollment workflow — 2026-10-05
+
+The operator decision in [Synchronization enrollment](./decisions/2026-10-05-synchronization-enrollment.md) supersedes older descriptions of mandatory paired channels and manual host archive passwords for these workflows.
+
+Host recovery derives its identity label from the selected component and Server ID. Updater resolves Saturn's HTTPS origin with its own Kernel machine principal; a saved origin is an outage fallback, and an explicit advanced override remains available. Authorization denial or incomplete Register data must not silently use the fallback. New scoped archives use independent persistent 256-bit generated service keys. The operator exports a private key file for off-host recovery; keys do not enter ordinary API responses, Register or job logs. Legacy passphrase archives remain readable.
+
+Volt and Mastermind registration selects archive, mirror or both, with at least one capability. The producer/control credential exists for policy and check-in in every profile, but a mirror-only credential cannot create, inspect, upload or complete archive runs. Archive-only profiles have no mirror or resource-reader device. Mastermind's reader is enrolled with its vault mirror. Service Settings edit only the selected schedules; paired profiles retain the single combined scheduling control.
+
+A Windows Connection name is the server-created folder under sync. Enrollment and heartbeat return its stable resource ID and current folder name. The client no longer accepts a separate destination. DAV authorization confines reads and mutations to that folder, checks both MOVE/COPY endpoints, and forbids moving, copying or deleting the assigned root. Removing the resource by the owner invalidates the assignment. Unbound legacy credentials fail closed until isolated setup is completed; existing data is never adopted automatically.
+
+
 This document is the Exocortex-wide source of truth for deploying, enrolling,
 operating and updating the Linux service agents **Neptune**, **Gryphon** and
 **Wyvern**, including their consuming services and the base **Updater**. It
@@ -83,10 +98,11 @@ production deployment.
 
 | Component | Host ownership | Primary responsibility | Consuming modules |
 | --- | --- | --- | --- |
-| Updater | One root-owned daemon per Linux host | Performs allow-listed privileged installation, enrollment and verified update jobs; has its own Kernel release-source connection | All seven application services and all three shared agents |
+| Updater | One root-owned daemon per Linux host | Performs allow-listed privileged installation, enrollment and verified update jobs; has its own Kernel release-source connection | All seven application services and all four shared host agents |
 | Neptune Linux | One unprivileged `neptuned` daemon per Linux host | Exports module-owned recovery archives and optional dedicated mirrors to Saturn | Kernel, Volt, Chronos, Saturn, Laboratory, Mastermind; future approved modules |
 | Gryphon Linux | One shared gateway service/version per Linux host | Owns registered adapter credentials, webhooks, update deduplication, callbacks and service-scoped bindings | Chronos, Saturn and Mastermind |
 | Wyvern | One shared unprivileged gateway per Linux host, or explicit remote HTTPS instance | Owns provider Adapters, keys, request transport and media handles; consumer domains retain prompts, jobs and commits | Mastermind, Laboratory |
+| Window | One shared Linux diagnostic broker per host | Owns the public paired-PC identity and transient operator grants; independently encrypted identity recovery is managed from the full root Updater TUI and restores with access closed | Explicitly paired operator PC; no application consumers |
 | Saturn | Central control plane and storage gateway | Issues single-use setup codes, enforces storage identity/quotas, receives archives/mirrors and may relay service-owned policy/commands; no central schedule editor | All Neptune deployments |
 
 An application web process MUST NOT receive `sudo`, a Docker socket, the Gryphon

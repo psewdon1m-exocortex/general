@@ -1,5 +1,16 @@
 # Part 03. Backup And Recovery
 
+## Approved enrollment workflow — 2026-10-05
+
+The operator decision in [Synchronization enrollment](./decisions/2026-10-05-synchronization-enrollment.md) supersedes older descriptions of mandatory paired channels and manual host archive passwords for these workflows.
+
+Host recovery derives its identity label from the selected component and Server ID. Updater resolves Saturn's HTTPS origin with its own Kernel machine principal; a saved origin is an outage fallback, and an explicit advanced override remains available. Authorization denial or incomplete Register data must not silently use the fallback. New scoped archives use independent persistent 256-bit generated service keys. The operator exports a private key file for off-host recovery; keys do not enter ordinary API responses, Register or job logs. Legacy passphrase archives remain readable.
+
+Volt and Mastermind registration selects archive, mirror or both, with at least one capability. The producer/control credential exists for policy and check-in in every profile, but a mirror-only credential cannot create, inspect, upload or complete archive runs. Archive-only profiles have no mirror or resource-reader device. Mastermind's reader is enrolled with its vault mirror. Service Settings edit only the selected schedules; paired profiles retain the single combined scheduling control.
+
+A Windows Connection name is the server-created folder under sync. Enrollment and heartbeat return its stable resource ID and current folder name. The client no longer accepts a separate destination. DAV authorization confines reads and mutations to that folder, checks both MOVE/COPY endpoints, and forbids moving, copying or deleting the assigned root. Removing the resource by the owner invalidates the assignment. Unbound legacy credentials fail closed until isolated setup is completed; existing data is never adopted automatically.
+
+
 > This is a normative component of the [Part 00 documentation authority](./PART_00_SYSTEM_UNIFICATION_SPECIFICATION.md).
 
 The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT** and **MAY** are

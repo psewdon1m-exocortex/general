@@ -74,7 +74,7 @@ configuration source for the shared Gryphon instance.
 Gryphon release bundles include an architecture-specific Node runtime covered by
 the artifact digest and manifest signature.
 
-Kernel, Volt, Updater, Neptune and Gryphon manifests require RSA-PSS-SHA256,
+Kernel, Volt, Updater, Neptune, Pluto and Gryphon manifests require RSA-PSS-SHA256,
 3072-bit or stronger signing keys. The compatible Saturn Updater manifest uses
 the same contract; Saturn's existing Ed25519 installer manifest is retained.
 The detached envelope is `<manifest>.sig.json`. Every repository stores its own
