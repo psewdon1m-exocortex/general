@@ -506,13 +506,13 @@ Saturn Backup Ingest
  ▼
 Финальное хранение
  │
- │ backups/<namespace-slug>/<deployment-id?>/<YYYY>/<MM>/<DD>/
+ │ # sync inner services/<namespace-slug>/<deployment-id?>/<YYYY>/<MM>/<DD>/
  │   <ISO-stamp>_full_<saturn-run-id>_<filename>.zip
  │
  │ deployment-id отсутствует только для legacy/default identity
  │
  │ пример:
- │ backups/chronos/vps-a/2026/09/20/
+ │ # sync inner services/chronos/vps-a/2026/09/20/
  │   2026-09-20T12-00-00-000Z_full_<run-id>_chronos-20260920T120000Z.zip
  ▼
 Saturn receipt
@@ -838,7 +838,7 @@ pre-restore safety backup.
 Saturn _system/incoming/backups/...
   └─ незавершённые resumable uploads
 
-Saturn backups/<namespace>/<deployment>/...
+Saturn # sync inner services/<namespace>/<deployment>/...
   └─ immutable committed recovery archives
 
 Компьютер оператора

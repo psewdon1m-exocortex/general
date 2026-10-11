@@ -29,7 +29,8 @@ Access Key; a device key alone is insufficient. A locked process remains reachab
 for login and reports failed readiness until unlocked. ZIP v3 contains the
 portable vault and logical records. Clean restore uses the archive's Access Key
 and rewraps record keys for the target vault. The independent mirror is still
-`/volt/personal.volt`; ZIP archives are under `/backups/volt` in Saturn storage.
+`/# volt/personal.volt`; ZIP archives are under `/# sync inner services/volt`
+in Saturn storage. The stable WebDAV alias remains `/dav/volt`.
 
 Across every operator-facing service in this profile, an Access Key is an
 explicitly supplied opaque exact value. No service may require a minimum or
